@@ -1,11 +1,10 @@
 pipeline {
     agent any
 
-    evironment {
+    environment {
         registry = 'registry'
         registryCredential = ''
     }
-
     stages {
         stage('BUILD'){
             steps{
