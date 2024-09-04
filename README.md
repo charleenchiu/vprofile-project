@@ -13,9 +13,8 @@ vprofile-project
 ●改Terraform file，建立AWS EC2 Ubuntu SornarQube Server、Kops Server
 ●執行Jenkinsfile，確認Terraform file有成功建立AWS Resource
 ●逐行確認能安裝這兩種Server，各寫UserData
-●清除Terraform的測試結果
-
 ●看能否用Ansible做UserData的設定
+●清除Terraform的測試結果
 
 ●寫Docker檔，建立Docker Image
 
