@@ -6,6 +6,12 @@ pipeline {
         registryCredential = ''
     }
     stages {
+        stage('Check Terraform'){
+            steps{
+                sh 'terraform -version'
+            }
+        }
+
         stage('BUILD'){
             steps{
                 echo 'stage(BUILD).steps'
