@@ -1,78 +1,62 @@
 pipeline {
-    agent any
 
-    environment {
-        registry = 'registry'
-        registryCredential = ''
+    parameters {
+        booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run apply after generating plan?')
     }
+    environment {
+        AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+    }
+
+    agent any
     stages {
-        stage('Check Terraform'){
+        stage('Git Clone'){
             steps{
-                sh 'terraform -version'
+                script{
+                    dir("terraform"){
+                        git branch: 'cicd-kube', url:'https://github.com/charleenchiu/vprofile-project.git'
+                    }
+                }
             }
-        }
-
-        stage('BUILD'){
-            steps{
-                echo 'stage(BUILD).steps'
-            }
-            post{
+            post {
+                // git clone 失敗
+                failure {
+                    echo "[*] git clone failure"
+                }
+                // git clone 成功
                 success {
-                    echo 'stage(BUILD).post.success'
+                    echo "[*] git clone successful"
                 }
             }
         }
 
-        stage('UNIT TEST'){
-            steps{
-                echo 'stage(UNIT TEST).steps'
+        stage('Plan') {
+            steps {
+                sh 'pwd;cd terraform/ ; terraform init'
+                sh 'pwd;cd terraform/ ; terraform plan -out tfplan'
+                sh 'pwd;cd terraform/ ; terraform show -no-color tfplan > tfplan.txt'
             }
         }
 
-        stage('INTEGRATION TEST'){
-            steps{
-                echo 'stage(INTEGRATION TEST).steps'
+        stage('Approval'){
+            when {
+                not {
+                    equals expected: true, actual: params.autoApprove
+                }
             }
-        }
 
-        stage('CODE ANALYSIS WITH CHECKSTYLE'){
             steps{
-                echo 'stage(CODE ANALYSIS WITH CHECKSTYLE).steps'
-            }
-            post{
-                success {
-                    echo 'stage(CODE ANALYSIS WITH CHECKSTYLE).post.success'
+                script {
+                    def plan = readFile 'terraform/tfplan.txt'
+                    input message: 'Do you want to apply the plan?',
+                    parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
                 }
             }
         }
 
-        stage('Building Image'){
+        stage('Apply'){
             steps{
-                echo 'stage(Building Image).steps'
-            }
-        }
-
-        stage('Deploy Image'){
-            steps{
-                echo 'stage(Deploy Image).steps'
-            }
-        }
-
-        stage('Remove Unused docker image'){
-            steps{
-                echo 'Remove Unused docker image'
-            }
-        }
-
-        stage('CODE ANALYSIS with SONARQUBE'){
-            steps{
-                echo 'CODE ANALYSIS with SONARQUBE'
-            }
-        }
-
-        stage('Kubernetes Deploy'){
-            steps{
-                echo 'Kubernetes Deploy'
+                sh 'pwd; cd terraform/ ; terraform apply -input=false tfplan'
             }
         }
     }
