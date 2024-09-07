@@ -9,6 +9,11 @@ resource "aws_instance" "Kops" {
         Name = "Kops"
     }
 }
+
+output "instance_ip_addr" {
+  value = aws_instance.example.private_ip
+}
+
 /*
 output "Kop EC2 Public IP" {
   value = "${aws_instance.Kops.public_ip}"
