@@ -54,7 +54,7 @@ module "key_pair" {
 resource "aws_security_group" "allow_tcp_nfs" {
   name        = "allow_tcp_nfs"
   description = "Allow TCP and NFS inbound traffic"
-  vpc_id      = "vpc-4ae4f922"
+  vpc_id      = "vpc-02fb581658eb58d45"
 
   ingress {
     description = "TCP from VPC"

@@ -1,0 +1,12 @@
+pipeline {
+    agent any
+    stages {
+        stage('Apply'){
+            steps{
+                //pwd是/var/lib/jenkins/workspace/vprofile-project
+                sh 'pwd; cd terraform/; terraform destroy -input=false tfplan'
+                sh 'pwd; cd..; rm -rf *'
+            }
+        }
+    }
+}
