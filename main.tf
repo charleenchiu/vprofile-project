@@ -14,7 +14,7 @@ resource "tls_private_key" "ec2_private_key" {
     algorithm = "RSA"
     rsa_bits  = 4096
     provisioner "local-exec" {
-        command = "sudo echo '${tls_private_key.ec2_private_key.private_key_pem}' > ~/test.pem"
+        command = "echo '${tls_private_key.ec2_private_key.private_key_pem}' > ~/test.pem"
     }
 }
 
@@ -23,7 +23,7 @@ resource "null_resource" "key-perm" {
         tls_private_key.ec2_private_key,
     ]
     provisioner "local-exec" {
-        command = "sudo chmod 400 ~/test.pem"
+        command = "chmod 400 ~/test.pem"
     }
 }
 
