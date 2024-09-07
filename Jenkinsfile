@@ -2,6 +2,7 @@ pipeline {
 
     parameters {
         booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run apply after generating plan?')
+        booleanParam(name: 'destroy', defaultValue: false, description: 'Destroy all builded resources?')
     }
     environment {
         AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
@@ -32,7 +33,9 @@ pipeline {
 
         stage('Plan') {
             steps {
+                sh 'whoami'
                 sh 'pwd;cd terraform/ ; terraform init'
+                // path will be /var/lib/jenkins/workspace/vprofile-project/terraform/
                 sh 'pwd;cd terraform/ ; terraform plan -out tfplan'
                 sh 'pwd;cd terraform/ ; terraform show -no-color tfplan > tfplan.txt'
             }
@@ -63,6 +66,26 @@ pipeline {
         stage('Ansible'){
             steps{
                 sh 'ansible --version'
+            }
+        }
+
+        stage('Destroy'){
+            when {
+                not {
+                    equals expected: true, actual: params.destroy
+                }
+            }
+
+            steps{
+                // path will be /var/lib/jenkins/workspace/vprofile-project/terraform/
+                // Clean-Up Files
+                //rm -rf .terraform*
+                //rm -rf terraform.tfstate*                    
+              sh '''
+                    pwd; cd terraform/ ; terraform destroy -auto-approve
+                    rm -rf /var/lib/jenkins/workspace/*
+                    pwd; ls
+                '''
             }
         }
     }
