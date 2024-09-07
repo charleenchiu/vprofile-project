@@ -66,6 +66,8 @@ pipeline {
         stage('Ansible'){
             steps{
                 sh 'ansible --version'
+                sh 'ansible-playbook --version'
+                sh 'ansible-galaxy --version'
                 echo "Kops.public_ip = ${aws_instance.Kops.public_ip}"
                 echo "Kops.private_ip = ${aws_instance.Kops.private_ip}"
             }
