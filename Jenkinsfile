@@ -63,14 +63,6 @@ pipeline {
             }
         }
 
-        /*
-        stage('Get EC2 IP'){
-            steps{
-                echo "Kops.public_ip = '${aws_instance.Kops.public_ip}'"
-                echo "Kops.private_ip = '${aws_instance.Kops.private_ip}'"
-            }
-        }
-        */
         stage('Ansible'){
             steps{
                 /*
@@ -83,29 +75,6 @@ pipeline {
                     ansible-playbook --version
                     ansible-galaxy --version
                 '''
-            }
-        }
-
-        stage('Destroy'){
-            when {
-                not {
-                    equals expected: true, actual: params.destroy
-                }
-            }
-
-            steps{
-                echo "destroy='${params.destroy}'"
-                // path will be /var/lib/jenkins/workspace/vprofile-project/terraform/
-                // Clean-Up Files
-                //rm -rf .terraform*
-                //rm -rf terraform.tfstate*                    
-              /*
-              sh '''
-                    pwd; cd terraform/ ; terraform destroy -auto-approve
-                    rm -rf /var/lib/jenkins/workspace/*
-                    pwd; ls
-                '''
-                */
             }
         }
     }

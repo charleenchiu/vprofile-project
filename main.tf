@@ -29,10 +29,6 @@ resource "null_resource" "key-perm" {
 
 // Configuring the external volume
 resource "null_resource" "setupVol" {
-    depends_on = [
-        aws_volume_attachment.myWebVolAttach,
-    ]
-    //
     provisioner "local-exec" {
         command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ~/test.pem -i '${aws_instance.Kops.public_ip},' master.yml"
     }
