@@ -10,21 +10,11 @@ resource "aws_instance" "Kops" {
     }
 }
 
-output "instance_ip_addr" {
-  value = aws_instance.example.private_ip
-}
-
-/*
-output "Kop EC2 Public IP" {
-  value = "${aws_instance.Kops.public_ip}"
-}
-*/
-
 resource "tls_private_key" "ec2_private_key" {
     algorithm = "RSA"
     rsa_bits  = 4096
     provisioner "local-exec" {
-        command = "echo '${tls_private_key.ec2_private_key.private_key_pem}' > ~/Desktop/test.pem"
+        command = "sudo echo '${tls_private_key.ec2_private_key.private_key_pem}' > ~/test.pem"
     }
 }
 
@@ -33,7 +23,7 @@ resource "null_resource" "key-perm" {
         tls_private_key.ec2_private_key,
     ]
     provisioner "local-exec" {
-        command = "chmod 400 ~/Desktop/test.pem"
+        command = "sudo chmod 400 ~/test.pem"
     }
 }
 
@@ -44,6 +34,16 @@ resource "null_resource" "setupVol" {
     ]
     //
     provisioner "local-exec" {
-        command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ~/Desktop/test.pem -i '${aws_instance.myWebOS.public_ip},' master.yml"
+        command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ~/test.pem -i '${aws_instance.Kops.public_ip},' master.yml"
     }
 }
+
+/*
+output "instance_ip_addr" {
+  value = aws_instance.Kops.public_ip
+}
+*/
+output "Kop_EC2_Public_IP" {
+  value = "${aws_instance.Kops.public_ip}"
+}
+
