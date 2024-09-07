@@ -19,3 +19,31 @@ output "Kop EC2 Public IP" {
   value = "${aws_instance.Kops.public_ip}"
 }
 */
+
+resource "tls_private_key" "ec2_private_key" {
+    algorithm = "RSA"
+    rsa_bits  = 4096
+    provisioner "local-exec" {
+        command = "echo '${tls_private_key.ec2_private_key.private_key_pem}' > ~/Desktop/test.pem"
+    }
+}
+
+resource "null_resource" "key-perm" {
+    depends_on = [
+        tls_private_key.ec2_private_key,
+    ]
+    provisioner "local-exec" {
+        command = "chmod 400 ~/Desktop/test.pem"
+    }
+}
+
+// Configuring the external volume
+resource "null_resource" "setupVol" {
+    depends_on = [
+        aws_volume_attachment.myWebVolAttach,
+    ]
+    //
+    provisioner "local-exec" {
+        command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ~/Desktop/test.pem -i '${aws_instance.myWebOS.public_ip},' master.yml"
+    }
+}
