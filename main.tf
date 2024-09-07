@@ -9,3 +9,7 @@ resource "aws_instance" "Kops" {
         Name = "Kops"
     }
 }
+output "Kop EC2 Public IP" {
+  value = "${aws_instance.Kops.public_ip}"
+}
+//aws_instance.Kops.public_ip
