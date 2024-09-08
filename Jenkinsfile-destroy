@@ -1,7 +1,7 @@
 pipeline {
     agent any
     stages {
-        stage('Apply'){
+        stage('TerraformDestroy'){
             steps{
                 //pwd是/var/lib/jenkins/workspace/vprofile-project
                 sh 'pwd; cd terraform/; terraform destroy -auto-approve'
