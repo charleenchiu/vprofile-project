@@ -99,7 +99,7 @@ resource "aws_security_group" "allow_tcp_nfs" {
 
 // Launching new EC2 instance
 resource "aws_instance" "myWebOS" {
-    ami = "ami-005956c5f0f757d37"
+    ami = "ami-0e86e20dae9224db8"
     instance_type = "t2.micro"
     key_name = var.key_name
     vpc_security_group_ids = ["${aws_security_group.allow_tcp_nfs.id}"]
