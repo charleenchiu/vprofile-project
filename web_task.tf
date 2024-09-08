@@ -103,7 +103,7 @@ resource "aws_instance" "myWebOS" {
     instance_type = "t2.micro"
     key_name = var.key_name
     vpc_security_group_ids = ["${aws_security_group.allow_tcp_nfs.id}"]
-    subnet_id = "subnet-2f0b3147"
+    subnet_id = "subnet-0153eaf2e8d59b0a0"
     tags = {
         Name = "TeraTaskOne"
     }
@@ -140,11 +140,11 @@ resource "null_resource" "setupVol" {
 
 // Creating private S3 Bucket
 resource "aws_s3_bucket" "tera_bucket" {
-  bucket = "terra-bucket-test"
+  bucket = "charleensideproject-s3-1"
   acl    = "private"
 
   tags = {
-    Name        = "terra_bucket"
+    Name        = "charleensideproject-s3"
   }
 }
 
