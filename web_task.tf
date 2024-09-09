@@ -1,7 +1,7 @@
 // Configuring the provider information
 provider "aws" {
     region = "us-east-1"
-    profile = "ankush"
+    profile = "default"
 }
 
 // Creating the EC2 private key
