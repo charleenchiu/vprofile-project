@@ -148,47 +148,32 @@ resource "aws_s3_bucket" "tera_bucket" {
 
 
 //把acl的寫法改成這樣↓
-/*
-resource "aws_s3_bucket_ownership_controls" "example" {
+resource "aws_s3_bucket_ownership_controls" "tera_bucket_ownership" {
   bucket = aws_s3_bucket.tera_bucket.id
   rule {
     object_ownership = "BucketOwnerPreferred"
   }
 }
 
-resource "aws_s3_bucket_public_access_block" "example" {
-  bucket = aws_s3_bucket.tera_bucket.id
-
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
-}
-*/
-
-//resource "aws_s3_bucket_acl" "example" {
-resource "aws_s3_bucket_acl" "tera_bucket_acl" {
-    /*
-  depends_on = [
-    aws_s3_bucket_ownership_controls.example,
-    aws_s3_bucket_public_access_block.example,
-  ]
-  */
-
-  bucket = "${aws_s3_bucket.tera_bucket.id}"
-  acl    = "private"
-}
-//把acl的寫法改成這樣↑
-
-
 // Block Public Access
-resource "aws_s3_bucket_public_access_block" "s3BlockPublicAccess" {
-  bucket = "${aws_s3_bucket.tera_bucket.id}"
+resource "aws_s3_bucket_public_access_block" "tera_bucket_acblock" {
+  bucket = aws_s3_bucket.tera_bucket.id
 
   block_public_acls   = true
   block_public_policy = true
   restrict_public_buckets = true
 }
+
+resource "aws_s3_bucket_acl" "tera_bucket_acl" {
+  depends_on = [
+    aws_s3_bucket_ownership_controls.tera_bucket_ownership,
+    aws_s3_bucket_public_access_block.tera_bucket_acblock,
+  ]
+
+  bucket = aws_s3_bucket.tera_bucket.id
+  acl    = "private"
+}
+//把acl的寫法改成這樣↑
 
 //
 locals {
@@ -322,8 +307,10 @@ data "aws_iam_policy_document" "s3_policy" {
 }
 
 resource "aws_s3_bucket_policy" "s3BucketPolicy" {
-  bucket = "${aws_s3_bucket.tera_bucket.id}"
-  policy = "${data.aws_iam_policy_document.s3_policy.json}"
+  //bucket = "${aws_s3_bucket.tera_bucket.id}"
+  //policy = "${data.aws_iam_policy_document.s3_policy.json}"
+  bucket = aws_s3_bucket.tera_bucket.id
+  policy = data.aws_iam_policy_document.s3_policy.json
 }
 
 //舊寫法
