@@ -138,7 +138,7 @@ resource "null_resource" "setupVol" {
 // acl這行會錯誤，說是過時的
 // Creating private S3 Bucket
 resource "aws_s3_bucket" "tera_bucket" {
-  bucket = "terra-bucket-test"
+  bucket = "charleen-terra-bucket-test"
   //acl    = "private"
 
   tags = {
