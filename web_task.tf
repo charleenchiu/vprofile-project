@@ -6,7 +6,7 @@ provider "aws" {
 
 // Creating the EC2 private key
 variable "key_name" {
-  default = "Terraform_test_nfs"
+  default = "charleen_Terraform_test_nfs"
 }
 
 variable "key_path" {
