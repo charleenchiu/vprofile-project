@@ -175,7 +175,7 @@ resource "aws_s3_bucket_acl" "tera_bucket_acl" {
   ]
   */
 
-  bucket = aws_s3_bucket.tera_bucket.id
+  bucket = "${aws_s3_bucket.tera_bucket.id}"
   acl    = "private"
 }
 //把acl的寫法改成這樣↑
