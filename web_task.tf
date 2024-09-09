@@ -10,7 +10,7 @@ variable "key_name" {
 }
 
 variable "key_path" {
-  default = path.module
+  default = "/var/lib/jenkins/workspace/vprofile-project/terraform"
 }
 output "show_key_path" {
   description = "key will store at path:"
