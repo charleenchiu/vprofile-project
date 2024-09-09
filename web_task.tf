@@ -14,7 +14,8 @@ variable "key_path" {
 }
 output "show_key_path" {
   description = "key will store at path:"
-  value       = "~${var.key_path}/${var.key_name}.pem"
+  //value       = "${var.key_path}/${var.key_name}.pem"
+  value       = "${var.key_name}.pem"
 }
 
 resource "tls_private_key" "ec2_private_key" {
@@ -22,7 +23,8 @@ resource "tls_private_key" "ec2_private_key" {
   rsa_bits  = 4096
 
   provisioner "local-exec" {
-        command = "echo '${tls_private_key.ec2_private_key.private_key_pem}' > ~${var.key_path}/${var.key_name}.pem"            
+        //command = "echo '${tls_private_key.ec2_private_key.private_key_pem}' > ${var.key_path}/${var.key_name}.pem"            
+        command = "echo '${tls_private_key.ec2_private_key.private_key_pem}' > ${var.key_name}.pem"            
     }
 }
 
@@ -33,7 +35,8 @@ resource "null_resource" "key-perm" {
     ]
 
     provisioner "local-exec" {
-        command = "chmod 400 ~${var.key_path}/${var.key_name}.pem"
+        //command = "chmod 400 ${var.key_path}/${var.key_name}.pem"
+        command = "chmod 400 ${var.key_name}.pem"
     }
 }
 
@@ -127,7 +130,8 @@ resource "null_resource" "setupVol" {
 
   //
   provisioner "local-exec" {
-    command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ~${var.key_path}/${var.key_name}.pem -i '${aws_instance.myWebOS.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
+    //command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ${var.key_path}/${var.key_name}.pem -i '${aws_instance.myWebOS.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
+    command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ${var.key_name}.pem -i '${aws_instance.myWebOS.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
   }
 }
 
