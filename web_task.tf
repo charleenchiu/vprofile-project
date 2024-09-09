@@ -1,21 +1,7 @@
 // Configuring the provider information
-terraform {
-  required_providers {
-    aws = {
-      source = "hashicorp/aws"
-      version = "5.66.0"
-    }
-  }
-}
-
 provider "aws" {
     region = "us-east-1"
-    //profile = "ankush"
-}
-
-module "s3-bucket" {
-  source  = "terraform-aws-modules/s3-bucket/aws"
-  version = "4.1.2"
+    profile = "ankush"
 }
 
 // Creating the EC2 private key
@@ -23,12 +9,20 @@ variable "key_name" {
   default = "Terraform_test_nfs"
 }
 
+variable "key_path" {
+  default = path.module()
+}
+output "show_key_path" {
+  description = "key will store at path:"
+  value       = "~${var.key_path}/${var.key_name}.pem"
+}
+
 resource "tls_private_key" "ec2_private_key" {
   algorithm = "RSA"
   rsa_bits  = 4096
 
   provisioner "local-exec" {
-        command = "echo '${tls_private_key.ec2_private_key.private_key_pem}' > ~/${var.key_name}.pem"            
+        command = "echo '${tls_private_key.ec2_private_key.private_key_pem}' > ~${var.key_path}/${var.key_name}.pem"            
     }
 }
 
@@ -39,7 +33,7 @@ resource "null_resource" "key-perm" {
     ]
 
     provisioner "local-exec" {
-        command = "chmod 400 ~/${var.key_name}.pem"
+        command = "chmod 400 ~${var.key_path}/${var.key_name}.pem"
     }
 }
 
@@ -121,7 +115,7 @@ resource "aws_efs_file_system" "myWebEFS" {
 // Mounting EFS
 resource "aws_efs_mount_target" "mountefs" {
   file_system_id  = "${aws_efs_file_system.myWebEFS.id}"
-  subnet_id       = "subnet-2f0b3147"
+  subnet_id       = "subnet-0153eaf2e8d59b0a0"
   security_groups = ["${aws_security_group.allow_tcp_nfs.id}",]
 }
 
@@ -133,18 +127,18 @@ resource "null_resource" "setupVol" {
 
   //
   provisioner "local-exec" {
-    command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ~/${var.key_name}.pem -i '${aws_instance.myWebOS.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
+    command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ~${var.key_path}/${var.key_name}.pem -i '${aws_instance.myWebOS.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
   }
 }
 
 
 // Creating private S3 Bucket
 resource "aws_s3_bucket" "tera_bucket" {
-  bucket = "charleensideproject-s3-1"
+  bucket = "terra-bucket-test"
   acl    = "private"
 
   tags = {
-    Name        = "charleensideproject-s3"
+    Name        = "terra_bucket"
   }
 }
 
