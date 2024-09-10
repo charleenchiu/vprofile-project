@@ -123,6 +123,10 @@ resource "aws_efs_mount_target" "mountefs" {
   security_groups = ["${aws_security_group.allow_tcp_nfs.id}",]
 }
 
+output "show_exec_Ansible_Playbook_command" {
+  description = "command to exec Ansible playbook"
+  value       = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ${var.key_name}.pem -i '${aws_instance.myWebOS.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
+}
 // Configuring the external volume
 resource "null_resource" "setupVol" {
   depends_on = [
@@ -134,10 +138,6 @@ resource "null_resource" "setupVol" {
     //command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ${var.key_path}/${var.key_name}.pem -i '${aws_instance.myWebOS.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
     command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ${var.key_name}.pem -i '${aws_instance.myWebOS.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
   }
-}
-output "show_exec_Ansible_Playbook_command" {
-  description = "command to exec Ansible playbook"
-  value       = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ${var.key_name}.pem -i '${aws_instance.myWebOS.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
 }
 
 // Creating private S3 Bucket
