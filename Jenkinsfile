@@ -65,11 +65,6 @@ pipeline {
 
         stage('Ansible'){
             steps{
-                /*
-                sh 'ansible --version'
-                sh 'ansible-playbook --version'
-                sh 'ansible-galaxy --version'
-                */
                 sh '''
                     ansible --version
                     ansible-playbook --version

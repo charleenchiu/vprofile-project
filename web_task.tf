@@ -135,6 +135,10 @@ resource "null_resource" "setupVol" {
     command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ${var.key_name}.pem -i '${aws_instance.myWebOS.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
   }
 }
+output "show_exec_Ansible_Playbook_command" {
+  description = "command to exec Ansible playbook"
+  value       = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ${var.key_name}.pem -i '${aws_instance.myWebOS.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
+}
 
 // Creating private S3 Bucket
 resource "aws_s3_bucket" "tera_bucket" {
@@ -326,3 +330,11 @@ resource "aws_s3_bucket_policy" "s3BucketPolicy" {
 
 
 //新寫法
+resource "aws_s3_object" "bucketObject" {
+  for_each = fileset("/var/www/html/", "*")
+  bucket = aws_s3_bucket.tera_bucket.id
+
+  key    = each.value
+  source = each.value
+  etag   = filemd5("${each.value}")
+}
