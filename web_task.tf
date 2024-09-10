@@ -101,6 +101,7 @@ resource "aws_instance" "myWebOS" {
     key_name = var.key_name
     vpc_security_group_ids = ["${aws_security_group.allow_tcp_nfs.id}"]
     subnet_id = "subnet-0153eaf2e8d59b0a0"
+    associate_public_ip_address = true 
     tags = {
         Name = "TeraTaskOne"
     }
@@ -135,10 +136,10 @@ resource "null_resource" "setupVol" {
   }
 }
 
-// acl這行會錯誤，說是過時的
 // Creating private S3 Bucket
 resource "aws_s3_bucket" "tera_bucket" {
   bucket = "charleen-terra-bucket-test"
+  // acl這行會錯誤，說是過時的
   //acl    = "private"
 
   tags = {
