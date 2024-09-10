@@ -10,7 +10,7 @@
 
   tasks:
     - name: Install httpd
-      command: yum install httpd -y
+      command: apt install httpd -y
       become: yes
       become_method: sudo
       become_user: root
@@ -28,13 +28,13 @@
       become_user: root
 
     - name: Install git
-      command: yum install git -y
+      command: apt install git -y
       become: yes
       become_method: sudo
       become_user: root
 
     - name: Install AWS EFS tools utilities
-      command: yum install -y amazon-efs-utils
+      command: apt install -y amazon-efs-utils
       become: yes
       become_method: sudo
       become_user: root
