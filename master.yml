@@ -9,6 +9,12 @@
   #   MOUNT_TARGET: "fs-934fc042.efs.ap-south-1.amazonaws.com"
 
   tasks:
+    - name: update
+      command: apt update
+      become: yes
+      become_method: sudo
+      become_user: root
+
     - name: Install httpd
       command: apt install httpd -y
       become: yes
