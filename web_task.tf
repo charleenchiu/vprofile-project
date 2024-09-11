@@ -36,7 +36,8 @@ resource "null_resource" "key-perm" {
 
     provisioner "local-exec" {
         //command = "chmod 400 ${var.key_path}/${var.key_name}.pem"
-        command = "chmod 400 ${var.key_name}.pem"
+        //command = "chmod 400 ${var.key_name}.pem"
+        command = "chmod 401 ${var.key_name}.pem"
     }
 }
 
