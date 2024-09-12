@@ -101,6 +101,20 @@ resource "aws_instance" "myWebServer" {
 
   provisioner "remote-exec" {
     inline = [
+      "ls -ld /tmp"
+    ]
+    
+    connection {
+      type        = "ssh"
+      user        = "ubuntu"
+      private_key = tls_private_key.ec2_private_key.private_key_pem
+      host        = self.public_ip
+      //host        = aws_instance.myWebServer.public_ip
+    }
+  }
+  /*
+  provisioner "remote-exec" {
+    inline = [
       "ls -ld /tmp",
       "sudo chmod 1777 /tmp",
       "ls -ld /tmp",
@@ -118,6 +132,7 @@ resource "aws_instance" "myWebServer" {
       //host        = aws_instance.myWebServer.public_ip
     }
   }
+  */
 }
 
 output "myWebServer_public_ip" {
