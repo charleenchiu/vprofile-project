@@ -33,7 +33,7 @@ resource "null_resource" "key-perm" {
     ]
 
     provisioner "local-exec" {
-        command = "chmod 600 ${var.key_name}.pem"
+        command = "sudo chmod 600 ${var.key_name}.pem"
     }
 }
 
