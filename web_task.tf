@@ -26,7 +26,6 @@ resource "aws_key_pair" "ec2_key_pair" {
   public_key = tls_private_key.ec2_private_key.public_key_openssh
 }
 
-/*
 // 將私鑰設置權限為 600
 resource "null_resource" "key-perm" {
     depends_on = [
@@ -37,8 +36,6 @@ resource "null_resource" "key-perm" {
         command = "chmod 600 ${var.key_name}.pem"
     }
 }
-*/
-
 
 // Creating aws security resource
 resource "aws_security_group" "allow_tcp_nfs" {
