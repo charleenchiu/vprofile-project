@@ -88,7 +88,7 @@ resource "aws_security_group" "allow_tcp_nfs" {
 }
 
 // Launching new EC2 instance
-resource "aws_instance" "myWebOS" {
+resource "aws_instance" "myWebServer" {
   ami = "ami-0e86e20dae9224db8"
   instance_type = "t2.micro"
   key_name = var.key_name
@@ -96,7 +96,7 @@ resource "aws_instance" "myWebOS" {
   subnet_id = "subnet-0153eaf2e8d59b0a0"
   associate_public_ip_address = true 
   tags = {
-      Name = "TeraTaskOne"
+      Name = "myWebServer"
   }
 
   provisioner "remote-exec" {
@@ -112,13 +112,13 @@ resource "aws_instance" "myWebOS" {
       user        = "ubuntu"
       private_key = tls_private_key.ec2_private_key.private_key_pem
       host        = self.public_ip
-      //host        = aws_instance.myWebOS.public_ip
+      //host        = aws_instance.myWebServer1.public_ip
     }
   }
 }
 
-output "myWebOS_public_ip" {
-  value = aws_instance.myWebOS.public_ip
+output "myWebServer_public_ip" {
+  value = aws_instance.myWebServer.public_ip
 }
 
 output "private_key" {
@@ -151,8 +151,8 @@ resource "null_resource" "setupVol" {
 
   //
   provisioner "local-exec" {
-    //command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ${var.key_path}/${var.key_name}.pem -i '${aws_instance.myWebOS.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
-    command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ubuntu --private-key ${var.key_name}.pem -i '${aws_instance.myWebOS.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
+    //command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ${var.key_path}/${var.key_name}.pem -i '${aws_instance.myWebServer.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
+    command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ubuntu --private-key ${var.key_name}.pem -i '${aws_instance.myWebServer.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
   }
 }
 */
