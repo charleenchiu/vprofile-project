@@ -98,41 +98,6 @@ resource "aws_instance" "myWebServer" {
   tags = {
       Name = "myWebServer"
   }
-
-  provisioner "remote-exec" {
-    inline = [
-      "ls -ld /tmp"
-    ]
-    
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = tls_private_key.ec2_private_key.private_key_pem
-      host        = self.public_ip
-      //host        = aws_instance.myWebServer.public_ip
-    }
-  }
-  /*
-  provisioner "remote-exec" {
-    inline = [
-      "ls -ld /tmp",
-      "sudo chmod 1777 /tmp",
-      "ls -ld /tmp",
-      "echo ${tls_private_key.ec2_private_key.public_key_openssh} >> ~/.ssh/authorized_keys",
-      "echo '${tls_private_key.ec2_private_key.private_key_pem}' > ~/.ssh/${var.key_name}",
-      "sudo chmod 600 ~/.ssh/${var.key_name}",
-      "ansible-playbook master.yml"
-    ]
-
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = tls_private_key.ec2_private_key.private_key_pem
-      host        = self.public_ip
-      //host        = aws_instance.myWebServer.public_ip
-    }
-  }
-  */
 }
 
 output "myWebServer_public_ip" {
@@ -160,20 +125,18 @@ resource "aws_efs_mount_target" "mountefs" {
   security_groups = ["${aws_security_group.allow_tcp_nfs.id}",]
 }
 
-/*
 // Configuring the external volume
 resource "null_resource" "setupVol" {
   depends_on = [
     aws_efs_mount_target.mountefs,
   ]
 
-  //
+  //從本機連到新建的EC2，執行Ansible playbook，並將建好的EFS ID傳給那台EC2
   provisioner "local-exec" {
     //command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ${var.key_path}/${var.key_name}.pem -i '${aws_instance.myWebServer.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
     command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ubuntu --private-key ${var.key_name}.pem -i '${aws_instance.myWebServer.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
   }
 }
-*/
 
 // Creating private S3 Bucket
 resource "aws_s3_bucket" "tera_bucket" {
