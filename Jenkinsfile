@@ -2,7 +2,6 @@ pipeline {
 
     parameters {
         booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run apply after generating plan?')
-        booleanParam(name: 'destroy', defaultValue: false, description: 'Destroy all builded resources?')
     }
     environment {
         AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
@@ -31,7 +30,7 @@ pipeline {
             }
         }
 
-        stage('Plan') {
+        stage('Terraform Plan') {
             steps {
                 sh 'whoami'
                 sh 'pwd;cd terraform/ ; terraform init'
@@ -41,7 +40,7 @@ pipeline {
             }
         }
 
-        stage('Approval'){
+        stage('Terraform Approval'){
             when {
                 not {
                     equals expected: true, actual: params.autoApprove
@@ -57,13 +56,13 @@ pipeline {
             }
         }
 
-        stage('Apply'){
+        stage('Terraform Apply'){
             steps{
                 sh 'pwd; cd terraform/ ; terraform apply -input=false tfplan'
             }
         }
 
-        stage('Ansible'){
+        stage('Ansible Version'){
             steps{
                 sh '''
                     ansible --version
@@ -72,5 +71,29 @@ pipeline {
                 '''
             }
         }
+
+        /*
+        //取回Terraform建好的私鑰，改權限
+        stage('Retrieve Private Key') {
+            steps {
+                script {
+                    def privateKey = sh(script: 'terraform output -raw private_key', returnStdout: true).trim()
+                    writeFile file: '~/.ssh/jenkins_key', text: privateKey
+                    sh 'chmod 600 ~/.ssh/jenkins_key'
+                }
+            }
+        }  
+
+        //把新建的EC2 IP寫入Ansible inventory檔，並執行palybook
+        stage('Run Ansible Playbook') {
+            steps {
+                script {
+                    def myWebOSIp = sh(script: 'terraform output -raw myWebOS_public_ip', returnStdout: true).trim()
+                    writeFile file: 'inventory.ini', text: "[mywebos]\nmywebos ansible_host=${myWebOSIp} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/jenkins_key"
+                    sh 'ansible-playbook -i inventory.ini /path/to/master.yml'
+                }
+            }
+        }
+        */
     }
 }

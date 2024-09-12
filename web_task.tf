@@ -9,44 +9,36 @@ variable "key_name" {
   default = "charleen_Terraform_test_nfs"
 }
 
-variable "key_path" {
-  default = "/var/lib/jenkins/workspace/vprofile-project/terraform"
-}
-output "show_key_path" {
-  description = "key will store at path:"
-  //value       = "${var.key_path}/${var.key_name}.pem"
-  value       = "${var.key_name}.pem"
-}
-
+//
 resource "tls_private_key" "ec2_private_key" {
   algorithm = "RSA"
   rsa_bits  = 4096
 
+  /*
   provisioner "local-exec" {
-        //command = "echo '${tls_private_key.ec2_private_key.private_key_pem}' > ${var.key_path}/${var.key_name}.pem"            
-        command = "echo '${tls_private_key.ec2_private_key.private_key_pem}' > ${var.key_name}.pem"            
-    }
+    command = "echo '${tls_private_key.ec2_private_key.private_key_pem}' > ${var.key_name}.pem"            
+  }
+  */
 }
 
-// Making the access of .pem key as a private
+resource "aws_key_pair" "ec2_private_key" {
+  key_name   = var.key_name
+  public_key = tls_private_key.ec2_private_key.public_key_openssh
+}
+
+/*
+// 將私鑰設置權限為 600
 resource "null_resource" "key-perm" {
     depends_on = [
         tls_private_key.ec2_private_key,
     ]
 
     provisioner "local-exec" {
-        //command = "chmod 400 ${var.key_path}/${var.key_name}.pem"
-        //command = "chmod 400 ${var.key_name}.pem"
-        command = "chmod 401 ${var.key_name}.pem"
+        command = "chmod 600 ${var.key_name}.pem"
     }
 }
+*/
 
-module "key_pair" {
-  source = "terraform-aws-modules/key-pair/aws"
-
-  key_name   = var.key_name
-  public_key = tls_private_key.ec2_private_key.public_key_openssh
-}
 
 // Creating aws security resource
 resource "aws_security_group" "allow_tcp_nfs" {
@@ -97,15 +89,41 @@ resource "aws_security_group" "allow_tcp_nfs" {
 
 // Launching new EC2 instance
 resource "aws_instance" "myWebOS" {
-    ami = "ami-0e86e20dae9224db8"
-    instance_type = "t2.micro"
-    key_name = var.key_name
-    vpc_security_group_ids = ["${aws_security_group.allow_tcp_nfs.id}"]
-    subnet_id = "subnet-0153eaf2e8d59b0a0"
-    associate_public_ip_address = true 
-    tags = {
-        Name = "TeraTaskOne"
+  ami = "ami-0e86e20dae9224db8"
+  instance_type = "t2.micro"
+  key_name = var.key_name
+  vpc_security_group_ids = ["${aws_security_group.allow_tcp_nfs.id}"]
+  subnet_id = "subnet-0153eaf2e8d59b0a0"
+  associate_public_ip_address = true 
+  tags = {
+      Name = "TeraTaskOne"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "echo ${tls_private_key.ec2_private_key.public_key_openssh} >> ~/.ssh/authorized_keys",
+      "echo '${tls_private_key.ec2_private_key.private_key_pem}' > ~/.ssh/ec2_private_key",
+      "chmod 600 ~/.ssh/ec2_private_key",
+      "ansible-playbook master.yml"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "ubuntu"
+      private_key = tls_private_key.ec2_private_key.private_key_pem
+      host        = self.public_ip
+      //host        = aws_instance.myWebOS.public_ip
     }
+  }
+}
+
+output "myWebOS_public_ip" {
+  value = aws_instance.myWebOS.public_ip
+}
+
+output "private_key" {
+  value = tls_private_key.ec2_private_key.private_key_pem
+  sensitive = true
 }
 
 // Creating EFS
@@ -124,6 +142,7 @@ resource "aws_efs_mount_target" "mountefs" {
   security_groups = ["${aws_security_group.allow_tcp_nfs.id}",]
 }
 
+/*
 // Configuring the external volume
 resource "null_resource" "setupVol" {
   depends_on = [
@@ -136,6 +155,7 @@ resource "null_resource" "setupVol" {
     command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ubuntu --private-key ${var.key_name}.pem -i '${aws_instance.myWebOS.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
   }
 }
+*/
 
 // Creating private S3 Bucket
 resource "aws_s3_bucket" "tera_bucket" {
