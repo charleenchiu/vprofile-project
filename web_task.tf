@@ -12,8 +12,8 @@ resource "null_resource" "get_pwd" {
 }
 
 // 讀取當前工作目錄
-locals {
-  current_dir = file("${path.module}/current_dir.txt")
+data "local_file" "current_dir" {
+  filename = "${path.module}/current_dir.txt"
 }
 
 // Creating the EC2 private key
@@ -37,6 +37,7 @@ resource "tls_private_key" "ec2_private_key" {
   }
 }
 
+/*
 // 將私鑰設置權限為 600
 resource "null_resource" "key-perm" {
     depends_on = [
@@ -52,6 +53,7 @@ resource "null_resource" "key-perm" {
         EOT
     }
 }
+*/
 
 // 產生公鑰
 resource "aws_key_pair" "ec2_key_pair" {
@@ -151,7 +153,7 @@ resource "aws_instance" "myWebServer" {
   //file provisioner 是 Terraform 中的一種 provisioner，用來將本地文件複製到遠端機器上。使用 file provisioner 可以避免使用 sudo 命令來設置文件權限，因為你可以在本地設置好文件權限後再將文件複製到遠端機器。
   provisioner "file" {
     //source      = "${var.key_name}.pem"
-    //source      = "${local.current_dir}/${var.key_name}.pem"
+    //source      = "${data.local_file.current_dir.content}/${var.key_name}.pem"
     source      = "/home/ubuntu/${var.key_name}.pem"
     destination = "/home/ubuntu/.ssh/${var.key_name}.pem"
 
