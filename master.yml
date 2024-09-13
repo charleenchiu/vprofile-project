@@ -39,11 +39,50 @@
       become_method: sudo
       become_user: root
 
-    - name: Install AWS EFS tools utilities
-      command: apt install -y amazon-efs-utils
+- hosts: all
+  become: true
+
+  tasks:
+    - name: Update APT package list
+      command: apt-get update
       become: yes
       become_method: sudo
       become_user: root
+
+    #　得到錯誤訊息表示amazon-efs-utils包在Ubuntu系統的APT源中找不到。可能是因為該包不在默認的APT源中。改為以下步驟手動安裝amazon-efs-utils：
+    - name: Install necessary dependencies
+      command: apt-get -y install git binutils
+      become: yes
+      become_method: sudo
+      become_user: root
+
+    - name: Clone efs-utils repository
+      git:
+        repo: 'https://github.com/aws/efs-utils'
+        dest: /tmp/efs-utils
+      become: yes
+      become_method: sudo
+      become_user: root
+
+    - name: Build amazon-efs-utils package
+      command: ./build-deb.sh
+      args:
+        chdir: /tmp/efs-utils
+      become: yes
+      become_method: sudo
+      become_user: root
+
+    - name: Install amazon-efs-utils package
+      command: apt-get -y install /tmp/efs-utils/build/amazon-efs-utils*deb
+      become: yes
+      become_method: sudo
+      become_user: root
+
+#    - name: Install AWS EFS tools utilities
+#      command: apt install -y amazon-efs-utils
+#      become: yes
+#      become_method: sudo
+#      become_user: root
 
     - name: Mounting EFS at /var/www/html
       command: mount -t efs {{ file_sys_id }}:/ /var/www/html
