@@ -14,16 +14,10 @@ resource "tls_private_key" "ec2_private_key" {
   algorithm = "RSA"
   rsa_bits  = 4096
 
-  /*
+  //在本地生成私鑰
   provisioner "local-exec" {
     command = "echo '${tls_private_key.ec2_private_key.private_key_pem}' > ${var.key_name}.pem"            
   }
-  */
-}
-
-resource "aws_key_pair" "ec2_key_pair" {
-  key_name   = var.key_name
-  public_key = tls_private_key.ec2_private_key.public_key_openssh
 }
 
 // 將私鑰設置權限為 600
@@ -32,9 +26,21 @@ resource "null_resource" "key-perm" {
         tls_private_key.ec2_private_key,
     ]
 
+    //local-exec provisioner：為在本地生成的私鑰，設置適當的權限（chmod 600）。
     provisioner "local-exec" {
-        command = "sudo chmod 600 ${var.key_name}.pem"
+        command = "chmod 600 ${var.key_name}.pem"
     }
+}
+
+// 產生公鑰
+resource "aws_key_pair" "ec2_key_pair" {
+  key_name   = var.key_name
+  public_key = tls_private_key.ec2_private_key.public_key_openssh
+}
+
+// Jenkins public key
+locals {
+  jenkins_public_key = aws_key_pair.ec2_key_pair.public_key
 }
 
 // Creating aws security resource
@@ -95,15 +101,51 @@ resource "aws_instance" "myWebServer" {
   tags = {
       Name = "myWebServer"
   }
-}
 
-output "myWebServer_public_ip" {
-  value = aws_instance.myWebServer.public_ip
-}
+  /*
+  //將 jenkins 用戶的公鑰添加到 ubuntu 用戶的 authorized_keys 文件中
+  provisioner "remote-exec" {
+    inline = [
+      "echo '${local.jenkins_public_key}' >> /home/ubuntu/.ssh/authorized_keys"
+    ]
 
-output "private_key" {
-  value = tls_private_key.ec2_private_key.private_key_pem
-  sensitive = true
+    connection {
+      type        = "ssh"
+      user        = "ubuntu"
+      private_key = tls_private_key.ec2_private_key.private_key_pem
+      host        = self.public_ip
+    }
+  }
+  */
+
+  //file provisioner：將設置好權限的私鑰文件從本地複製到遠端機器。
+  //file provisioner 是 Terraform 中的一種 provisioner，用來將本地文件複製到遠端機器上。使用 file provisioner 可以避免使用 sudo 命令來設置文件權限，因為你可以在本地設置好文件權限後再將文件複製到遠端機器。
+  provisioner "file" {
+    source      = "${var.key_name}.pem"
+    destination = "/home/ubuntu/.ssh/${var.key_name}.pem"
+
+    connection {
+      type        = "ssh"
+      user        = "ubuntu"
+      private_key = tls_private_key.ec2_private_key.private_key_pem
+      host        = self.public_ip
+    }
+  }
+ 
+  //remote-exec provisioner：在遠端機器上設置私鑰文件的權限並添加 jenkins 用戶的公鑰到 authorized_keys 文件中。
+  provisioner "remote-exec" {
+    inline = [
+      "chmod 600 /home/ubuntu/.ssh/${var.key_name}.pem",
+      "echo '${local.jenkins_public_key}' >> /home/ubuntu/.ssh/authorized_keys"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "ubuntu"
+      private_key = tls_private_key.ec2_private_key.private_key_pem
+      host        = self.public_ip
+    }
+  }
 }
 
 // Creating EFS
@@ -129,10 +171,14 @@ resource "null_resource" "setupVol" {
   ]
 
   //從本機連到新建的EC2，執行Ansible playbook，並將建好的EFS ID傳給那台EC2
+  /*
   provisioner "local-exec" {
-    //command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ${var.key_path}/${var.key_name}.pem -i '${aws_instance.myWebServer.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
     command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ubuntu --private-key ${var.key_name}.pem -i '${aws_instance.myWebServer.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
   }
+  */
+  provisioner "local-exec" {
+    command = "(pwd && cd terraform/ && echo 'Starting Ansible playbook execution' && sudo ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ubuntu --private-key ${var.key_name}.pem -i '${aws_instance.myWebServer.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}' && echo 'Ansible playbook execution completed')"
+  }    
 }
 
 // Creating private S3 Bucket
@@ -332,4 +378,13 @@ resource "aws_s3_object" "bucketObject" {
   key    = each.value
   source = each.value
   etag   = filemd5("${each.value}")
+}
+
+output "myWebServer_public_ip" {
+  value = aws_instance.myWebServer.public_ip
+}
+
+output "private_key" {
+  value = tls_private_key.ec2_private_key.private_key_pem
+  sensitive = true
 }
