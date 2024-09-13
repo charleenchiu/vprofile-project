@@ -7,7 +7,7 @@ provider "aws" {
 // 獲取當前工作目錄並存儲在一個文件中
 resource "null_resource" "get_pwd" {
   provisioner "local-exec" {
-    command = "pwd > current_dir.txt"
+    command = "pwd > ${path.module}/current_dir.txt"
   }
 }
 
@@ -30,7 +30,7 @@ resource "tls_private_key" "ec2_private_key" {
   provisioner "local-exec" {
     //pwd 路徑會是：/var/lib/jenkins/workspace/vprofile-project/terraform
     command = <<EOT
-      #echo '${tls_private_key.ec2_private_key.private_key_pem}' > $(cat ${path.module}/current_dir.txt)/${var.key_name}.pem
+      echo '${tls_private_key.ec2_private_key.private_key_pem}' > ${data.local_file.current_dir.content}/${var.key_name}.pem
       echo '${tls_private_key.ec2_private_key.private_key_pem}' > /home/ubuntu/${var.key_name}.pem
     EOT
   }
