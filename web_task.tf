@@ -4,19 +4,36 @@ provider "aws" {
     //profile = "default"
 }
 
+// 獲取當前工作目錄並存儲在一個文件中
+resource "null_resource" "get_pwd" {
+  provisioner "local-exec" {
+    command = "pwd > current_dir.txt"
+  }
+}
+
+// 讀取當前工作目錄
+locals {
+  current_dir = file("${path.module}/current_dir.txt")
+}
+
 // Creating the EC2 private key
 variable "key_name" {
   default = "charleen_Terraform_test_nfs"
 }
 
-//
+//建立私鑰並匯出存在目前工作目錄中
 resource "tls_private_key" "ec2_private_key" {
   algorithm = "RSA"
   rsa_bits  = 4096
 
   //在本地生成私鑰
   provisioner "local-exec" {
-    command = "echo '${tls_private_key.ec2_private_key.private_key_pem}' > ${var.key_name}.pem"            
+    //pwd 路徑會是：/var/lib/jenkins/workspace/vprofile-project/terraform
+    command = <<EOT
+      key_path=$(pwd)
+      #echo '${tls_private_key.ec2_private_key.private_key_pem}' > ${key_path}/${var.key_name}.pem
+      echo '${tls_private_key.ec2_private_key.private_key_pem}' > /home/ubuntu/${var.key_name}.pem
+    EOT
   }
 }
 
@@ -28,18 +45,30 @@ resource "null_resource" "key-perm" {
 
     //local-exec provisioner：為在本地生成的私鑰，設置適當的權限（chmod 600）。
     provisioner "local-exec" {
-        command = "chmod 600 ${var.key_name}.pem"
+        command = <<EOT
+          key_path=$(pwd)
+          #chmod 600 ${key_path}/${var.key_name}.pem
+          chmod 600 /home/ubuntu/${var.key_name}.pem
+        EOT
     }
 }
 
 // 產生公鑰
 resource "aws_key_pair" "ec2_key_pair" {
+  depends_on = [
+      tls_private_key.ec2_private_key,
+  ]
+
   key_name   = var.key_name
   public_key = tls_private_key.ec2_private_key.public_key_openssh
 }
 
 // Jenkins public key
 locals {
+  depends_on = [
+      aws_key_pair.ec2_key_pair,
+  ]
+
   jenkins_public_key = aws_key_pair.ec2_key_pair.public_key
 }
 
@@ -121,7 +150,9 @@ resource "aws_instance" "myWebServer" {
   //file provisioner：將設置好權限的私鑰文件從本地複製到遠端機器。
   //file provisioner 是 Terraform 中的一種 provisioner，用來將本地文件複製到遠端機器上。使用 file provisioner 可以避免使用 sudo 命令來設置文件權限，因為你可以在本地設置好文件權限後再將文件複製到遠端機器。
   provisioner "file" {
-    source      = "${var.key_name}.pem"
+    //source      = "${var.key_name}.pem"
+    //source      = "${local.current_dir}/${var.key_name}.pem"
+    source      = "/home/ubuntu/${var.key_name}.pem"
     destination = "/home/ubuntu/.ssh/${var.key_name}.pem"
 
     connection {
@@ -177,7 +208,7 @@ resource "null_resource" "setupVol" {
   }
   */
   provisioner "local-exec" {
-    command = "(pwd && cd terraform/ && echo 'Starting Ansible playbook execution' && sudo ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ubuntu --private-key ${var.key_name}.pem -i '${aws_instance.myWebServer.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}' && echo 'Ansible playbook execution completed')"
+    command = "(pwd && echo 'Starting Ansible playbook execution' && sudo ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ubuntu --private-key ${var.key_name}.pem -i '${aws_instance.myWebServer.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}' && echo 'Ansible playbook execution completed')"
   }    
 }
 
