@@ -31,9 +31,10 @@ resource "tls_private_key" "ec2_private_key" {
   //在本地生成私鑰
   provisioner "local-exec" {
     command = <<EOT
-      key_path=$(cat ${path.module}/current_dir.txt)
-      echo '${tls_private_key.ec2_private_key.private_key_pem}' > ${data.local_file.current_dir.content}/${var.key_name}.pem
-      echo '${tls_private_key.ec2_private_key.private_key_pem}' > /home/ubuntu/${var.key_name}.pem
+      echo '${tls_private_key.ec2_private_key.private_key_pem}' > ${var.key_name}.pem
+      #key_path=$(cat ${path.module}/current_dir.txt)
+      #echo '${tls_private_key.ec2_private_key.private_key_pem}' > ${data.local_file.current_dir.content}/${var.key_name}.pem
+      #echo '${tls_private_key.ec2_private_key.private_key_pem}' > /home/ubuntu/${var.key_name}.pem
     EOT
   }
 }
@@ -48,9 +49,10 @@ resource "null_resource" "key-perm" {
     //local-exec provisioner：為在本地生成的私鑰，設置適當的權限（chmod 600）。
     provisioner "local-exec" {
         command = <<EOT
-          key_path=$(pwd)
+          #key_path=$(pwd)
           #chmod 600 ${key_path}/${var.key_name}.pem
-          chmod 600 /home/ubuntu/${var.key_name}.pem
+          #chmod 600 /home/ubuntu/${var.key_name}.pem
+          chmod 600 ${var.key_name}.pem
         EOT
     }
 }
@@ -153,9 +155,9 @@ resource "aws_instance" "myWebServer" {
   //file provisioner：將設置好權限的私鑰文件從本地複製到遠端機器。
   //file provisioner 是 Terraform 中的一種 provisioner，用來將本地文件複製到遠端機器上。使用 file provisioner 可以避免使用 sudo 命令來設置文件權限，因為你可以在本地設置好文件權限後再將文件複製到遠端機器。
   provisioner "file" {
-    //source      = "${var.key_name}.pem"
+    source      = "${var.key_name}.pem"
     //source      = "${data.local_file.current_dir.content}/${var.key_name}.pem"
-    source      = "/home/ubuntu/${var.key_name}.pem"
+    //source      = "/home/ubuntu/${var.key_name}.pem"
     destination = "/home/ubuntu/.ssh/${var.key_name}.pem"
 
     connection {
@@ -420,5 +422,10 @@ output "myWebServer_public_ip" {
 
 output "private_key" {
   value = tls_private_key.ec2_private_key.private_key_pem
+  sensitive = true
+}
+
+output "private_key_path" {
+  value = "${data.local_file.current_dir.content}/${var.key_name}.pem"
   sensitive = true
 }
