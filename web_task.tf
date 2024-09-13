@@ -30,8 +30,7 @@ resource "tls_private_key" "ec2_private_key" {
   provisioner "local-exec" {
     //pwd 路徑會是：/var/lib/jenkins/workspace/vprofile-project/terraform
     command = <<EOT
-      key_path=$(pwd)
-      #echo '${tls_private_key.ec2_private_key.private_key_pem}' > ${key_path}/${var.key_name}.pem
+      #echo '${tls_private_key.ec2_private_key.private_key_pem}' > $(cat ${path.module}/current_dir.txt)/${var.key_name}.pem
       echo '${tls_private_key.ec2_private_key.private_key_pem}' > /home/ubuntu/${var.key_name}.pem
     EOT
   }
