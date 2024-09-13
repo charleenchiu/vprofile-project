@@ -16,19 +16,19 @@
       become_user: root
 
     - name: Install httpd
-      command: apt install httpd -y
+      command: apt install apache2 -y
       become: yes
       become_method: sudo
       become_user: root
 
     - name: Start httpd
-      command: systemctl start httpd
+      command: systemctl start apache2
       become: yes
       become_method: sudo
       become_user: root
 
     - name: Enable httpd
-      command: systemctl enable httpd
+      command: systemctl enable apache2
       become: yes
       become_method: sudo
       become_user: root
