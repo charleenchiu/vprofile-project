@@ -62,6 +62,19 @@ pipeline {
             }
         }
 
+        stage('Setup') {
+            steps {
+                // 設置私鑰文件的權限
+                sh 'chmod 600 /var/lib/jenkins/workspace/vprofile-project/terraform/charleen_Terraform_test_nfs.pem'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                // 執行Ansible playbook
+                sh 'ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ubuntu --private-key /var/lib/jenkins/workspace/vprofile-project/terraform/charleen_Terraform_test_nfs.pem -i "3.86.177.86," master.yml -e "file_sys_id=fs-03267e0cada2b466a"'
+            }
+        }
+
         stage('Ansible Version'){
             steps{
                 sh '''
