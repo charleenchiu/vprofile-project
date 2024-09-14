@@ -420,13 +420,17 @@ output "myWebServer_public_ip" {
   value = aws_instance.myWebServer.public_ip
 }
 
+/*
 output "private_key" {
   value = tls_private_key.ec2_private_key.private_key_pem
   sensitive = true
 }
+*/
 
+/*
 output "private_key_path" {
   //value = "${data.local_file.current_dir.content}/${var.key_name}.pem"
   value = "${path.module}/${var.key_name}.pem"
   sensitive = true
 }
+*/
