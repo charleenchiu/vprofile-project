@@ -416,9 +416,11 @@ resource "aws_s3_object" "bucketObject" {
   etag   = filemd5("${each.value}")
 }
 
+/*
 output "myWebServer_public_ip" {
   value = aws_instance.myWebServer.public_ip
 }
+*/
 
 /*
 output "private_key" {
