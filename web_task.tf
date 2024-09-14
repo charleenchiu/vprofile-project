@@ -60,9 +60,11 @@ resource "null_resource" "key-perm" {
 
 // 產生公鑰
 resource "aws_key_pair" "ec2_key_pair" {
+  /*
   depends_on = [
       tls_private_key.ec2_private_key,
   ]
+  */
 
   key_name   = var.key_name
   public_key = tls_private_key.ec2_private_key.public_key_openssh
