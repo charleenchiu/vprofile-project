@@ -426,6 +426,7 @@ output "private_key" {
 }
 
 output "private_key_path" {
-  value = "${data.local_file.current_dir.content}/${var.key_name}.pem"
+  //value = "${data.local_file.current_dir.content}/${var.key_name}.pem"
+  value = "${path.module}/${var.key_name}.pem"
   sensitive = true
 }
