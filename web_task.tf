@@ -34,28 +34,11 @@ resource "null_resource" "write_private_key" {
   provisioner "local-exec" {
     command = <<EOT
       echo '${tls_private_key.ec2_private_key.private_key_pem}' > ${path.module}/${var.key_name}.pem
+      chmod 600 ${path.module}/${var.key_name}.pem
     EOT
   }
 }
 
-/*
-// 將私鑰設置權限為 600
-resource "null_resource" "key-perm" {
-    depends_on = [
-        tls_private_key.ec2_private_key,
-    ]
-
-    //local-exec provisioner：為在本地生成的私鑰，設置適當的權限（chmod 600）。
-    provisioner "local-exec" {
-        command = <<EOT
-          #key_path=$(pwd)
-          #chmod 600 ${key_path}/${var.key_name}.pem
-          #chmod 600 /home/ubuntu/${var.key_name}.pem
-          chmod 600 ${var.key_name}.pem
-        EOT
-    }
-}
-*/
 
 // 產生公鑰
 resource "aws_key_pair" "ec2_key_pair" {
