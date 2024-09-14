@@ -56,6 +56,11 @@
 #      become_user: root
 
     #　上一段得到錯誤訊息表示amazon-efs-utils包在Ubuntu系統的APT源中找不到。可能是因為該包不在默認的APT源中。改為以下步驟手動安裝amazon-efs-utils：
+    - name: Install Rust and Cargo
+      apt:
+        name: cargo
+        state: present
+
     - name: Install necessary dependencies
       command: apt-get -y install git binutils
       become: yes
