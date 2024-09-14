@@ -1,7 +1,6 @@
 // Configuring the provider information
 provider "aws" {
     region = "us-east-1"
-    //profile = "default"
 }
 
 // 獲取當前工作目錄並存儲在一個文件中
@@ -23,18 +22,18 @@ variable "key_name" {
   default = "charleen_Terraform_test_nfs"
 }
 
-//建立私鑰並匯出存在目前工作目錄中
+// Generate the private key
 resource "tls_private_key" "ec2_private_key" {
   algorithm = "RSA"
   rsa_bits  = 4096
+}
 
-  //在本地生成私鑰
+// Write the private key to a file
+// 不在上段產生private key時，用local-exec寫入檔案，以免造成循環
+resource "null_resource" "write_private_key" {
   provisioner "local-exec" {
     command = <<EOT
-      echo '${tls_private_key.ec2_private_key.private_key_pem}' > ${var.key_name}.pem
-      #key_path=$(cat ${path.module}/current_dir.txt)
-      #echo '${tls_private_key.ec2_private_key.private_key_pem}' > ${data.local_file.current_dir.content}/${var.key_name}.pem
-      #echo '${tls_private_key.ec2_private_key.private_key_pem}' > /home/ubuntu/${var.key_name}.pem
+      echo '${tls_private_key.ec2_private_key.private_key_pem}' > ${path.module}/${var.key_name}.pem
     EOT
   }
 }
@@ -71,11 +70,8 @@ resource "aws_key_pair" "ec2_key_pair" {
 }
 
 // Jenkins public key
+// 不用depends_on以免造成循環
 locals {
-  depends_on = [
-      aws_key_pair.ec2_key_pair,
-  ]
-
   jenkins_public_key = aws_key_pair.ec2_key_pair.public_key
 }
 
@@ -131,7 +127,7 @@ resource "aws_instance" "myWebServer" {
   ami = "ami-0e86e20dae9224db8"
   instance_type = "t2.micro"
   key_name = var.key_name
-  vpc_security_group_ids = ["${aws_security_group.allow_tcp_nfs.id}"]
+  vpc_security_group_ids = [aws_security_group.allow_tcp_nfs.id]
   subnet_id = "subnet-0153eaf2e8d59b0a0"
   associate_public_ip_address = true 
   tags = {
@@ -157,7 +153,7 @@ resource "aws_instance" "myWebServer" {
   //file provisioner：將設置好權限的私鑰文件從本地複製到遠端機器。
   //file provisioner 是 Terraform 中的一種 provisioner，用來將本地文件複製到遠端機器上。使用 file provisioner 可以避免使用 sudo 命令來設置文件權限，因為你可以在本地設置好文件權限後再將文件複製到遠端機器。
   provisioner "file" {
-    source      = "${var.key_name}.pem"
+    source      = "${path.module}/${var.key_name}.pem"
     //source      = "${data.local_file.current_dir.content}/${var.key_name}.pem"
     //source      = "/home/ubuntu/${var.key_name}.pem"
     destination = "/home/ubuntu/.ssh/${var.key_name}.pem"
@@ -197,16 +193,14 @@ resource "aws_efs_file_system" "myWebEFS" {
 
 // Mounting EFS
 resource "aws_efs_mount_target" "mountefs" {
-  file_system_id  = "${aws_efs_file_system.myWebEFS.id}"
+  file_system_id  = aws_efs_file_system.myWebEFS.id
   subnet_id       = "subnet-0153eaf2e8d59b0a0"
-  security_groups = ["${aws_security_group.allow_tcp_nfs.id}",]
+  security_groups = [aws_security_group.allow_tcp_nfs.id]
 }
 
 // Configuring the external volume
 resource "null_resource" "setupVol" {
-  depends_on = [
-    aws_efs_mount_target.mountefs,
-  ]
+  depends_on = [aws_efs_mount_target.mountefs]
 
   //從本機連到新建的EC2，執行Ansible playbook，並將建好的EFS ID傳給那台EC2
   /*
@@ -215,23 +209,29 @@ resource "null_resource" "setupVol" {
   }
   */
   provisioner "local-exec" {
-    command = "(pwd && echo 'Starting Ansible playbook execution' && ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ubuntu --private-key ${var.key_name}.pem -i '${aws_instance.myWebServer.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}' && echo 'Ansible playbook execution completed')"
-  }    
+    command = <<EOT
+      (
+        echo '${path.module}/${var.key_name}.pem' &&
+        echo 'Starting Ansible playbook execution' &&
+        ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ubuntu --private-key ${path.module}/${var.key_name}.pem -i '${aws_instance.myWebServer.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}' &&
+        echo 'Ansible playbook execution completed!'
+      )
+    EOT
+  }
 }
 
 // Creating private S3 Bucket
 resource "aws_s3_bucket" "tera_bucket" {
   bucket = "charleen-terra-bucket-test"
-  // acl這行會錯誤，說是過時的
-  //acl    = "private"
 
   tags = {
-    Name        = "terra_bucket"
+    Name = "terra_bucket"
   }
 }
 
 
-//把acl的寫法改成這樣↓
+//S3 ACL ↓
+// S3 Bucket Ownership Controls
 resource "aws_s3_bucket_ownership_controls" "tera_bucket_ownership" {
   bucket = aws_s3_bucket.tera_bucket.id
   rule {
@@ -257,9 +257,9 @@ resource "aws_s3_bucket_acl" "tera_bucket_acl" {
   bucket = aws_s3_bucket.tera_bucket.id
   acl    = "private"
 }
-//把acl的寫法改成這樣↑
+// S3 ACL ↑
 
-//
+// Local variables
 locals {
   s3_origin_id = "myS3Origin"
 }
@@ -271,11 +271,11 @@ resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
 
 resource "aws_cloudfront_distribution" "s3_distribution" {
   origin {
-    domain_name = "${aws_s3_bucket.tera_bucket.bucket_regional_domain_name}"
-    origin_id   = "${local.s3_origin_id}"
+    domain_name = aws_s3_bucket.tera_bucket.bucket_regional_domain_name
+    origin_id   = local.s3_origin_id
 
     s3_origin_config {
-      origin_access_identity = "${aws_cloudfront_origin_access_identity.origin_access_identity.cloudfront_access_identity_path}"
+      origin_access_identity = aws_cloudfront_origin_access_identity.origin_access_identity.cloudfront_access_identity_path
     }
   }
 
@@ -286,7 +286,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   default_cache_behavior {
     allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "${local.s3_origin_id}"
+    target_origin_id = local.s3_origin_id
 
     forwarded_values {
       query_string = false
@@ -302,12 +302,12 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     max_ttl                = 86400
   }
 
-  # Cache behavior with precedence 0
+  // Cache behavior with precedence 0
   ordered_cache_behavior {
     path_pattern     = "/content/immutable/*"
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD", "OPTIONS"]
-    target_origin_id = "${local.s3_origin_id}"
+    target_origin_id = local.s3_origin_id
 
     forwarded_values {
       query_string = false
@@ -325,12 +325,12 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     viewer_protocol_policy = "redirect-to-https"
   }
 
-  # Cache behavior with precedence 1
+  // Cache behavior with precedence 1
   ordered_cache_behavior {
     path_pattern     = "/content/*"
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "${local.s3_origin_id}"
+    target_origin_id = local.s3_origin_id
 
     forwarded_values {
       query_string = false
@@ -375,24 +375,22 @@ data "aws_iam_policy_document" "s3_policy" {
 
     principals {
       type        = "AWS"
-      identifiers = ["${aws_cloudfront_origin_access_identity.origin_access_identity.iam_arn}"]
+      identifiers = [aws_cloudfront_origin_access_identity.origin_access_identity.iam_arn]
     }
   }
 
   statement {
     actions   = ["s3:ListBucket"]
-    resources = ["${aws_s3_bucket.tera_bucket.arn}"]
+    resources = [aws_s3_bucket.tera_bucket.arn]
 
     principals {
       type        = "AWS"
-      identifiers = ["${aws_cloudfront_origin_access_identity.origin_access_identity.iam_arn}"]
+      identifiers = [aws_cloudfront_origin_access_identity.origin_access_identity.iam_arn]
     }
   }
 }
 
 resource "aws_s3_bucket_policy" "s3BucketPolicy" {
-  //bucket = "${aws_s3_bucket.tera_bucket.id}"
-  //policy = "${data.aws_iam_policy_document.s3_policy.json}"
   bucket = aws_s3_bucket.tera_bucket.id
   policy = data.aws_iam_policy_document.s3_policy.json
 }
@@ -419,22 +417,22 @@ resource "aws_s3_object" "bucketObject" {
 }
 
 /*
+*/
 output "myWebServer_public_ip" {
   value = aws_instance.myWebServer.public_ip
 }
-*/
 
 /*
+*/
 output "private_key" {
   value = tls_private_key.ec2_private_key.private_key_pem
   sensitive = true
 }
-*/
 
 /*
+*/
 output "private_key_path" {
   //value = "${data.local_file.current_dir.content}/${var.key_name}.pem"
   value = "${path.module}/${var.key_name}.pem"
   sensitive = true
 }
-*/
