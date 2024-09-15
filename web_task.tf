@@ -195,6 +195,7 @@ resource "null_resource" "setupVol" {
     command = <<EOT
       (
         echo '${path.module}/${var.key_name}.pem' &&
+        echo 'ls -l ${path.module}/${var.key_name}.pem' &&
         echo 'Starting Ansible playbook execution' &&
         ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ubuntu --private-key ${path.module}/${var.key_name}.pem -i '${aws_instance.myWebServer.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}' &&
         echo 'Ansible playbook execution completed!'

@@ -54,19 +54,31 @@
 #      become: yes
 #      become_method: sudo
 #      become_user: root
+#　   此段得到錯誤訊息，表示amazon-efs-utils package在Ubuntu系統的APT源中找不到。可能是因為該包不在默認的APT源中。改為以下步驟手動安裝amazon-efs-utils：
 
-    #　上一段得到錯誤訊息表示amazon-efs-utils包在Ubuntu系統的APT源中找不到。可能是因為該包不在默認的APT源中。改為以下步驟手動安裝amazon-efs-utils：
+    # 安裝必要的dependencies: Rust and Cargo
     - name: Install Rust and Cargo
       apt:
         name: cargo
         state: present
+    # 等於下列shell指令：
+    # 下載並運行 Rust 的安裝腳本，這個腳本會同時安裝 Rust 和 Cargo：
+    # curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    # 如果你只想安裝 Cargo，可以使用以下指令：
+    # sudo apt-get -y install cargo
 
+
+    # 以 sudo 權限執行 apt-get 命令來安裝 git 和 binutils 這兩個軟體包，並且會自動回答所有提示（-y 選項）。
     - name: Install necessary dependencies
       command: apt-get -y install git binutils
       become: yes
       become_method: sudo
       become_user: root
+    # 等於下列shell指令：
+    # sudo apt-get -y install git binutils
 
+
+    # 以 sudo 權限執行 git clone 命令，將 efs-utils 存儲庫複製到 /tmp/efs-utils 目錄。
     - name: Clone efs-utils repository
       git:
         repo: 'https://github.com/aws/efs-utils'
@@ -74,7 +86,11 @@
       become: yes
       become_method: sudo
       become_user: root
+    # 等於下列shell指令：
+    # sudo git clone https://github.com/aws/efs-utils /tmp/efs-utils
 
+
+    # 以 sudo 權限執行，並切換到 /tmp/efs-utils 目錄後執行 ./build-deb.sh 腳本。
     - name: Build amazon-efs-utils package
       command: ./build-deb.sh
       args:
@@ -82,26 +98,51 @@
       become: yes
       become_method: sudo
       become_user: root
+    # 等於下列shell指令：
+    # sudo bash -c 'cd /tmp/efs-utils && ./build-deb.sh'
 
+
+    #以 sudo 權限執行 apt-get 命令來安裝位於 /tmp/efs-utils/build/ 目錄中的 amazon-efs-utils 軟體包
     - name: Install amazon-efs-utils package
       command: apt-get -y install /tmp/efs-utils/build/amazon-efs-utils*deb
       become: yes
       become_method: sudo
       become_user: root
+    # 等於下列shell指令：
+    # sudo apt-get -y install /tmp/efs-utils/build/amazon-efs-utils*deb
 
+
+    # 以 sudo 權限執行 mount 命令，將 EFS 文件系統掛載到 /var/www/html 目錄。請確保在執行這個命令之前，已經安裝了 amazon-efs-utils 工具包，並且 file_sys_id 已經被正確替換為你的 EFS 文件系統 ID。
     - name: Mounting EFS at /var/www/html
       command: mount -t efs {{ file_sys_id }}:/ /var/www/html
       become: yes
       become_method: sudo
       become_user: root
+    # 等於下列shell指令：
+    # sudo mount -t efs ${file_sys_id}:/ /var/www/html
 
+
+    # 以 sudo 權限執行 echo 命令，將 EFS 文件系統的掛載信息添加到 /etc/fstab 文件中，以便在重啟時自動掛載。
     - name: Edit fstab so EFS automatically loads on reboot
       command: echo {{ file_sys_id }}:/ /var/www/html efs defaults,_netdev 0 0 >> /etc/fstab
       become: yes
       become_method: sudo
       become_user: root
+    # 等於下列shell指令：
+    # sudo bash -c 'echo ${file_sys_id}:/ /var/www/html efs defaults,_netdev 0 0 >> /etc/fstab'
 
+
+    # 以 sudo 權限執行，並切換到 /var/www/html 目錄後執行 git clone 命令，將代碼庫複製到該目錄中。
     - name: Copy the code from github to the /var/www/html
       shell: |
         cd /var/www/html
         git clone https://github.com/cankush625/Web.git
+    # 等於下列shell指令：
+    # sudo bash -c 'cd /var/www/html && git clone https://github.com/cankush625/Web.git'
+    # 或寫成多行：
+    # sudo bash -c '{
+    #    cd /var/www/html
+    #    git clone https://github.com/cankush625/Web.git
+    #    echo "Clone completed"
+    # }'
+
