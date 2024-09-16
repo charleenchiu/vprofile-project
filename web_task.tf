@@ -34,24 +34,15 @@ resource "null_resource" "write_private_key" {
   provisioner "local-exec" {
     command = <<EOT
       echo '${tls_private_key.ec2_private_key.private_key_pem}' > ${path.module}/${var.key_name}.pem
-      echo 'before chmod 600：'
-      ls -l ${path.module}/${var.key_name}.pem
       chmod 600 ${path.module}/${var.key_name}.pem
-      echo 'after chmod 600：'
-      ls -l ${path.module}/${var.key_name}.pem
       EOT
   }
 }
 
 
 // 產生公鑰
+// 不用depends_on以免造成循環
 resource "aws_key_pair" "ec2_key_pair" {
-  /*
-  depends_on = [
-      tls_private_key.ec2_private_key,
-  ]
-  */
-
   key_name   = var.key_name
   public_key = tls_private_key.ec2_private_key.public_key_openssh
 }
@@ -121,28 +112,10 @@ resource "aws_instance" "myWebServer" {
       Name = "myWebServer"
   }
 
-  /*
-  //將 jenkins 用戶的公鑰添加到 ubuntu 用戶的 authorized_keys 文件中
-  provisioner "remote-exec" {
-    inline = [
-      "echo '${local.jenkins_public_key}' >> /home/ubuntu/.ssh/authorized_keys"
-    ]
-
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = tls_private_key.ec2_private_key.private_key_pem
-      host        = self.public_ip
-    }
-  }
-  */
-
   //file provisioner：將設置好權限的私鑰文件從本地複製到遠端機器。
   //file provisioner 是 Terraform 中的一種 provisioner，用來將本地文件複製到遠端機器上。使用 file provisioner 可以避免使用 sudo 命令來設置文件權限，因為你可以在本地設置好文件權限後再將文件複製到遠端機器。
   provisioner "file" {
     source      = "${path.module}/${var.key_name}.pem"
-    //source      = "${data.local_file.current_dir.content}/${var.key_name}.pem"
-    //source      = "/home/ubuntu/${var.key_name}.pem"
     destination = "/home/ubuntu/.ssh/${var.key_name}.pem"
 
     connection {
@@ -189,26 +162,8 @@ resource "null_resource" "setupVol" {
   depends_on = [aws_efs_mount_target.mountefs]
 
   //從本機連到新建的EC2，執行Ansible playbook，並將建好的EFS ID傳給那台EC2
-  /*
   provisioner "local-exec" {
-    command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ubuntu --private-key ${var.key_name}.pem -i '${aws_instance.myWebServer.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
-  }
-  */
-  provisioner "local-exec" {
-        //echo '${path.module}/${var.key_name}.pem' &&
-        //echo 'ls -l ${path.module}/${var.key_name}.pem' &&
-        //echo 'before chmod 600：' &&
-        //ls -l ${path.module}/${var.key_name}.pem &&
-        //chmod 600 ${path.module}/${var.key_name}.pem &&
-        //echo 'after chmod 600：' &&
-        //ls -l ${path.module}/${var.key_name}.pem &&
-        //echo 'Starting Ansible playbook execution' &&
-        //echo 'Ansible playbook execution completed!'
-    command = <<EOT
-      (
-        ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ubuntu --private-key ${path.module}/${var.key_name}.pem -i '${aws_instance.myWebServer.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'
-      )
-    EOT
+    command = "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ubuntu --private-key ${path.module}/${var.key_name}.pem -i '${aws_instance.myWebServer.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}'"
   }
 }
 
@@ -387,18 +342,6 @@ resource "aws_s3_bucket_policy" "s3BucketPolicy" {
   policy = data.aws_iam_policy_document.s3_policy.json
 }
 
-//舊寫法
-//resource "aws_s3_bucket_object" "bucketObject" {
-//  for_each = fileset("~/Downloads/assets", "**/*.jpg")
-
-//  bucket = "${aws_s3_bucket.tera_bucket.bucket}"
-//  key    = each.value
-//  source = "~/Downloads/assets/${each.value}"
-//  content_type = "image/jpg"
-//}
-
-
-//新寫法
 resource "aws_s3_object" "bucketObject" {
   for_each = fileset("/var/www/html/", "*")
   bucket = aws_s3_bucket.tera_bucket.id
@@ -408,23 +351,6 @@ resource "aws_s3_object" "bucketObject" {
   etag   = filemd5("${each.value}")
 }
 
-/*
-*/
 output "myWebServer_public_ip" {
   value = aws_instance.myWebServer.public_ip
-}
-
-/*
-*/
-output "private_key" {
-  value = tls_private_key.ec2_private_key.private_key_pem
-  sensitive = true
-}
-
-/*
-*/
-output "private_key_path" {
-  //value = "${data.local_file.current_dir.content}/${var.key_name}.pem"
-  value = "${path.module}/${var.key_name}.pem"
-  sensitive = true
 }
