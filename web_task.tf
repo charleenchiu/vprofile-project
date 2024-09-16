@@ -170,10 +170,10 @@ resource "aws_instance" "myWebServer" {
 
 // Creating EFS
 resource "aws_efs_file_system" "myWebEFS" {
-  creation_token = "myWebFile"
+  creation_token = "CharleenWebFile"
 
   tags = {
-    Name = "myWebFileSystem"
+    Name = "CharleenWebFileSystem"
   }
 }
 
