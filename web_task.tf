@@ -34,7 +34,11 @@ resource "null_resource" "write_private_key" {
   provisioner "local-exec" {
     command = <<EOT
       echo '${tls_private_key.ec2_private_key.private_key_pem}' > ${path.module}/${var.key_name}.pem
+      echo 'before chmod 600：'
+      echo 'ls -l ${path.module}/${var.key_name}.pem'
       chmod 600 ${path.module}/${var.key_name}.pem
+      echo 'after chmod 600：'
+      echo 'ls -l ${path.module}/${var.key_name}.pem'
     EOT
   }
 }
@@ -152,7 +156,6 @@ resource "aws_instance" "myWebServer" {
   //remote-exec provisioner：在遠端機器上設置私鑰文件的權限並添加 jenkins 用戶的公鑰到 authorized_keys 文件中。
   provisioner "remote-exec" {
     inline = [
-      "chmod 600 /home/ubuntu/.ssh/${var.key_name}.pem",
       "echo '${local.jenkins_public_key}' >> /home/ubuntu/.ssh/authorized_keys"
     ]
 
@@ -196,6 +199,11 @@ resource "null_resource" "setupVol" {
       (
         echo '${path.module}/${var.key_name}.pem' &&
         echo 'ls -l ${path.module}/${var.key_name}.pem' &&
+        echo 'before chmod 600：' &&
+        echo 'ls -l ${path.module}/${var.key_name}.pem' &&
+        chmod 600 ${path.module}/${var.key_name}.pem &&
+        echo 'after chmod 600：' &&
+        echo 'ls -l ${path.module}/${var.key_name}.pem'
         echo 'Starting Ansible playbook execution' &&
         ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ubuntu --private-key ${path.module}/${var.key_name}.pem -i '${aws_instance.myWebServer.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}' &&
         echo 'Ansible playbook execution completed!'
