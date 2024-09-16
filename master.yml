@@ -69,8 +69,13 @@
         line: 'OPENSSL_DIR=/usr/lib/ssl'
         create: yes
 
-    - name: Apply environment variable
-      shell: source /etc/environment
+    - name: Apply environment variable 1
+      shell: 'export OPENSSL_DIR=/usr/lib/ssl'
+      environment:
+        OPENSSL_DIR: /usr/lib/ssl
+
+    # - name: Apply environment variable 2
+    #     shell: source /etc/environment
 
   
     # 安裝必要的dependencies: Rust and Cargo
