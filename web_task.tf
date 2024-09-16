@@ -186,7 +186,7 @@ resource "aws_efs_mount_target" "mountefs" {
 
 // Configuring the external volume
 resource "null_resource" "setupVol" {
-  depends_on = [aws_efs_mount_target.mountefs]
+  //depends_on = [aws_efs_mount_target.mountefs]
 
   //從本機連到新建的EC2，執行Ansible playbook，並將建好的EFS ID傳給那台EC2
   /*
