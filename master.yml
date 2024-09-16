@@ -57,7 +57,22 @@
 #　   此段得到錯誤訊息，表示amazon-efs-utils package在Ubuntu系統的APT source中找不到。可能是因為該package不在預設的APT來源中。
 #     改為以下步驟手動安裝amazon-efs-utils：
 
+    - name: Install OpenSSL development package
+      apt:
+        name: libssl-dev
+        state: present
+      become: yes
 
+    - name: Set OPENSSL_DIR environment variable
+      lineinfile:
+        path: /etc/environment
+        line: 'OPENSSL_DIR=/usr/lib/ssl'
+        create: yes
+
+    - name: Apply environment variable
+      shell: source /etc/environment
+
+  
     # 安裝必要的dependencies: Rust and Cargo
     - name: Install Rust and Cargo
       apt:
