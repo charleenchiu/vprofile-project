@@ -1,0 +1,76 @@
+- hosts: all
+  become: true
+    
+  # vars_files:
+  #   - tf_master.yml
+
+  # vars:
+  #   terra_variables: "{{ lookup('file', 'ansible-vars.json') }}"
+  #   MOUNT_TARGET: "fs-934fc042.efs.ap-south-1.amazonaws.com"
+
+  tasks:
+    - name: update
+      command: apt update
+      become: yes
+      become_method: sudo
+      become_user: root
+
+    - name: Install httpd
+      command: apt install apache2 -y
+      become: yes
+      become_method: sudo
+      become_user: root
+
+    - name: Start httpd
+      command: systemctl start apache2
+      become: yes
+      become_method: sudo
+      become_user: root
+
+    - name: Enable httpd
+      command: systemctl enable apache2
+      become: yes
+      become_method: sudo
+      become_user: root
+
+    - name: Install git
+      command: apt install git -y
+      become: yes
+      become_method: sudo
+      become_user: root
+
+- hosts: all
+  become: true
+
+  tasks:
+    - name: Update APT package list
+      command: apt-get update
+      become: yes
+      become_method: sudo
+      become_user: root
+
+#    - name: Install AWS EFS tools utilities
+#      command: apt install -y amazon-efs-utils
+#      become: yes
+#      become_method: sudo
+#      become_user: root
+#　   此段得到錯誤訊息，表示amazon-efs-utils package在Ubuntu系統的APT source中找不到。可能是因為該package不在預設的APT來源中。
+#     改為以下步驟手動安裝amazon-efs-utils：
+
+
+
+
+    # 以 sudo 權限執行，並切換到 /var/www/html 目錄後執行 git clone 命令，將代碼庫複製到該目錄中。
+    - name: Copy the code from github to the /var/www/html
+      shell: |
+        cd /var/www/html
+        git clone https://github.com/cankush625/Web.git
+    # 等於下列shell指令：
+    # sudo bash -c 'cd /var/www/html && git clone https://github.com/cankush625/Web.git'
+    # 或寫成多行：
+    # sudo bash -c '{
+    #    cd /var/www/html
+    #    git clone https://github.com/cankush625/Web.git
+    #    echo "Clone completed"
+    # }'
+
