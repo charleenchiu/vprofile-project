@@ -186,7 +186,7 @@ resource "aws_efs_mount_target" "mountefs" {
 
 // Configuring the external volume
 resource "null_resource" "setupVol" {
-  //depends_on = [aws_efs_mount_target.mountefs]
+  depends_on = [aws_efs_mount_target.mountefs]
 
   //從本機連到新建的EC2，執行Ansible playbook，並將建好的EFS ID傳給那台EC2
   /*
@@ -195,18 +195,18 @@ resource "null_resource" "setupVol" {
   }
   */
   provisioner "local-exec" {
+        //echo '${path.module}/${var.key_name}.pem' &&
+        //echo 'ls -l ${path.module}/${var.key_name}.pem' &&
+        //echo 'before chmod 600：' &&
+        //ls -l ${path.module}/${var.key_name}.pem &&
+        //chmod 600 ${path.module}/${var.key_name}.pem &&
+        //echo 'after chmod 600：' &&
+        //ls -l ${path.module}/${var.key_name}.pem &&
+        //echo 'Starting Ansible playbook execution' &&
+        //echo 'Ansible playbook execution completed!'
     command = <<EOT
       (
-        echo '${path.module}/${var.key_name}.pem' &&
-        echo 'ls -l ${path.module}/${var.key_name}.pem' &&
-        echo 'before chmod 600：' &&
-        ls -l ${path.module}/${var.key_name}.pem &&
-        chmod 600 ${path.module}/${var.key_name}.pem &&
-        echo 'after chmod 600：' &&
-        ls -l ${path.module}/${var.key_name}.pem &&
-        echo 'Starting Ansible playbook execution' &&
-        ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ubuntu --private-key ${path.module}/${var.key_name}.pem -i '${aws_instance.myWebServer.public_ip},' playbooktest.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}' &&
-        echo 'Ansible playbook execution completed!'
+        ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ubuntu --private-key ${path.module}/${var.key_name}.pem -i '${aws_instance.myWebServer.public_ip},' master.yml -e 'file_sys_id=${aws_efs_file_system.myWebEFS.id}' &&
       )
     EOT
   }
