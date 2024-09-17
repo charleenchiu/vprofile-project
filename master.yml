@@ -152,6 +152,25 @@
   become: true
 
   tasks:
+#    # 在本地磁碟分區創建一個大小為 1GiB 的新主分區
+#    - name: Create a new primary partition with a size of 1GiB
+#      parted:
+#        device: /dev/xvdc
+#        number: 1
+#        state: present
+#        part_end: 500MiB
+#    # 等於下列 shell 指令：
+#    # sudo parted /dev/xvdc mkpart primary 0% 500MiB
+#
+#    # 在本地磁碟分區，格式化剛才創建的分區，並將其掛載到 /var/www/html
+#    - name: Format the partition, mount it to the /var/www/html
+#      shell: |
+#        mkfs -t ext4 /dev/xvdc1
+#        mount /dev/xvdc1 /var/www/html
+#    # 等於下列 shell 指令：
+#    # sudo mkfs -t ext4 /dev/xvdc1
+#    # sudo mount /dev/xvdc1 /var/www/html
+
     # 以 sudo 權限執行 mount 命令，將 EFS 文件系統掛載到 /var/www/html 目錄。請確保在執行這個命令之前，已經安裝了 amazon-efs-utils 工具包，並且 file_sys_id 已經被正確替換為你的 EFS 文件系統 ID。
     - name: Mounting EFS at /var/www/html
       command: mount -t efs {{ file_sys_id }}:/ /var/www/html
