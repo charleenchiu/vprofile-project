@@ -124,13 +124,18 @@
     # 以 sudo 權限執行，並切換到 /tmp/efs-utils 目錄後執行 ./build-deb.sh 腳本。
     - name: Build amazon-efs-utils package
       command: ./build-deb.sh
+      register: build_result
+      ignore_errors: yes
+      #register: build_result
+      #ignore_errors: no
+      #failed_when: build_result.rc != 0
       args:
         chdir: /tmp/efs-utils
       become: yes
       become_method: sudo
       become_user: root
     # 等於下列shell指令：
-    # sudo bash -c 'cd /tmp/efs-utils && ./build-deb.sh'
+    # sudo bash -c 'cd /tmp/efs-utils && ./build-deb.sh || true'
 
 
     #以 sudo 權限執行 apt-get 命令來安裝位於 /tmp/efs-utils/build/ 目錄中的 amazon-efs-utils 軟體包
