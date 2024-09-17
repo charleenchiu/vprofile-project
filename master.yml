@@ -122,6 +122,10 @@
     - name: Build amazon-efs-utils package
       command: ./build-deb.sh
       register: build_result
+      ignore_errors: yes
+      #register: build_result
+      #ignore_errors: no
+      #failed_when: build_result.rc != 0
       args:
         chdir: /tmp/efs-utils
       become: yes
