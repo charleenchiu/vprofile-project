@@ -1,9 +1,5 @@
 #開頭的 --- 是用來表示文件的開始。這是 YAML（Yet Another Markup Language）文件的標準語法，用來明確指出文件的開始。這樣做有助於解析器正確地讀取和理解文件內容。
 ---
-- vars:
-  efs_mount_dir: /var/www/html
-  nfs_package: nfs-common  # 對於 Ubuntu
-
 - hosts: all
   become: true
 
@@ -54,6 +50,10 @@
   become: yes
   gather_facts: yes
 
+  vars:
+  efs_mount_dir: /var/www/html
+  nfs_package: nfs-common  # 對於 Ubuntu
+
   tasks:
     - name: 安裝 NFS 客戶端
       apt:
@@ -91,6 +91,9 @@
 
 - hosts: all
   become: true
+
+  vars:
+  efs_mount_dir: /var/www/html
 
   tasks:
 #    # 在本地磁碟分區創建一個大小為 1GiB 的新主分區
