@@ -1,6 +1,6 @@
 #開頭的 --- 是用來表示文件的開始。這是 YAML（Yet Another Markup Language）文件的標準語法，用來明確指出文件的開始。這樣做有助於解析器正確地讀取和理解文件內容。
 ---
-vars:
+- vars:
   efs_mount_dir: /var/www/html
   nfs_package: nfs-common  # 對於 Ubuntu
 
