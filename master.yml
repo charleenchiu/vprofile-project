@@ -143,6 +143,10 @@
     # sudo apt-get -y install /tmp/efs-utils/build/amazon-efs-utils*deb
 
 
+- hosts: all
+  become: true
+
+  tasks:
     # 以 sudo 權限執行 mount 命令，將 EFS 文件系統掛載到 /var/www/html 目錄。請確保在執行這個命令之前，已經安裝了 amazon-efs-utils 工具包，並且 file_sys_id 已經被正確替換為你的 EFS 文件系統 ID。
     - name: Mounting EFS at /var/www/html
       command: mount -t efs {{ file_sys_id }}:/ /var/www/html
