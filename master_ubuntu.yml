@@ -1,0 +1,139 @@
+#開頭的 --- 是用來表示文件的開始。這是 YAML（Yet Another Markup Language）文件的標準語法，用來明確指出文件的開始。這樣做有助於解析器正確地讀取和理解文件內容。
+---
+vars:
+  efs_mount_dir: /var/www/html
+  nfs_package: nfs-common  # 對於 Ubuntu
+
+- hosts: all
+  become: true
+
+#  # 指定變數文件，這裡引用了 tf_master.yml 文件
+#  vars_files:
+#    - tf_master.yml
+#
+#  # 定義變數
+#  vars:
+#    # 從 ansible-vars.json 文件中查找並加載 terra_variables 變數
+#    terra_variables: "{{ lookup('file', 'ansible-vars.json') }}"
+#    
+#    # 定義 EFS 的掛載目標
+#    MOUNT_TARGET: "fs-934fc042.efs.ap-south-1.amazonaws.com"
+
+  tasks:
+    - name: update
+      command: apt update
+      become: yes
+      become_method: sudo
+      become_user: root
+
+    - name: Install httpd
+      command: apt install apache2 -y
+      become: yes
+      become_method: sudo
+      become_user: root
+
+    - name: Start httpd
+      command: systemctl start apache2
+      become: yes
+      become_method: sudo
+      become_user: root
+
+    - name: Enable httpd
+      command: systemctl enable apache2
+      become: yes
+      become_method: sudo
+      become_user: root
+
+    - name: Install git
+      command: apt install git -y
+      become: yes
+      become_method: sudo
+      become_user: root
+
+- hosts: all
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: 安裝 NFS 客戶端
+      apt:
+        name: "{{ nfs_package }}"
+        state: present
+
+    - name: 確保掛載目錄存在
+      file:
+        path: "{{ efs_mount_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: 獲取 EC2 實例的元數據
+      ec2_metadata_facts:
+
+    - name: 設置 EFS DNS 名稱
+      set_fact:
+        aws_region: "{{ ansible_ec2_placement_region }}"
+        efs_dns_name: "{{ file_sys_id }}.efs.{{ aws_region }}.amazonaws.com"
+
+    - name: 掛載 EFS
+      mount:
+        name: "{{ efs_mount_dir }}"
+        src: "{{ efs_dns_name }}:/"
+        fstype: nfs4
+        opts: nfsvers=4.1
+        state: mounted
+
+    - name: 確認掛載成功
+      command: "ls -lah {{ efs_mount_dir }}"
+      register: efs_contents
+
+    - debug:
+        var: efs_contents
+
+- hosts: all
+  become: true
+
+  tasks:
+#    # 在本地磁碟分區創建一個大小為 1GiB 的新主分區
+#    - name: Create a new primary partition with a size of 1GiB
+#      parted:
+#        device: /dev/xvdc
+#        number: 1
+#        state: present
+#        part_end: 500MiB
+#    # 等於下列 shell 指令：
+#    # sudo parted /dev/xvdc mkpart primary 0% 500MiB
+#
+#    # 在本地磁碟分區，格式化剛才創建的分區，並將其掛載到 /var/www/html
+#    - name: Format the partition, mount it to the /var/www/html
+#      shell: |
+#        mkfs -t ext4 /dev/xvdc1
+#        mount /dev/xvdc1 /var/www/html
+#    # 等於下列 shell 指令：
+#    # sudo mkfs -t ext4 /dev/xvdc1
+#    # sudo mount /dev/xvdc1 /var/www/html
+
+
+    # 以 sudo 權限執行 echo 命令，將 EFS 文件系統的掛載信息添加到 /etc/fstab 文件中，以便在重啟時自動掛載。
+    - name: Edit fstab so EFS automatically loads on reboot
+      command: echo {{ file_sys_id }}:/ {{ efs_mount_dir }} efs defaults,_netdev 0 0 >> /etc/fstab
+      become: yes
+      become_method: sudo
+      become_user: root
+    # 等於下列shell指令：
+    # sudo bash -c 'echo ${file_sys_id}:/ /var/www/html efs defaults,_netdev 0 0 >> /etc/fstab'
+
+
+    # 以 sudo 權限執行，並切換到 /var/www/html 目錄後執行 git clone 命令，將代碼庫複製到該目錄中。
+    - name: Copy the code from github to the /var/www/html
+      shell: |
+        cd {{ efs_mount_dir }}
+        git clone https://github.com/cankush625/Web.git
+    # 等於下列shell指令：
+    # sudo bash -c 'cd /var/www/html && git clone https://github.com/cankush625/Web.git'
+    # 或寫成多行：
+    # sudo bash -c '{
+    #    cd /var/www/html
+    #    git clone https://github.com/cankush625/Web.git
+    #    echo "Clone completed"
+    # }'
+
