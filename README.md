@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ## Prerequisites
 - JDK 1.8 or later
 - Maven 3 or later
@@ -22,3 +23,7 @@ Then look for the file :
 - > mysql -u <user_name> -p accounts < accountsdb.sql
 
 
+=======
+# vprofile-project
+vprofile-project
+>>>>>>> 1e20442a60c7e50f09a91f399487fe410203392c
