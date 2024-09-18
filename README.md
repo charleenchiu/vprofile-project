@@ -21,4 +21,5 @@ Then look for the file :
 - accountsdb.sql file is a mysql dump file.we have to import this dump to mysql db server
 - > mysql -u <user_name> -p accounts < accountsdb.sql
 
-
+## EC2 Instance Type
+![alt text](<temp/專案需要建置的Server Instance Type.png>)
