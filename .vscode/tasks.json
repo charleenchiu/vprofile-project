@@ -1,0 +1,11 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Switch to CreateNSetEC2 branch",
+            "type": "shell",
+            "command": "git checkout CreateNSetEC2",
+            "problemMatcher": []
+        }
+    ]
+}
