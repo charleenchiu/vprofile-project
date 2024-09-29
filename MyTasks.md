@@ -50,6 +50,38 @@ vprofile-project
 
 ●寫Docker檔，建立Docker Image
 
+※上傳ECR時，使用Docker 憑證助手
+      這個警告信息表示 Docker 將您的登錄密碼未加密地存儲在 `/var/lib/jenkins/.docker/config.json` 文件中。這可能會帶來安全風險，因為未加密的密碼可能會被未經授權的用戶訪問。
+      
+      為了提高安全性，您可以配置 Docker 憑證助手（credential helper）來管理您的 Docker 登錄憑證。這樣，您的密碼將不會以未加密的形式存儲在配置文件中。
+      
+      以下是配置 Docker 憑證助手的步驟：
+      
+      1. **安裝 Docker 憑證助手**：
+          - 根據您的操作系統，安裝適當的 Docker 憑證助手。例如，對於 Linux，您可以使用 `docker-credential-pass`：
+            ```sh
+            sudo apt-get install pass
+            ```
+      
+      2. **配置 Docker 使用憑證助手**：
+          - 編輯或創建 Docker 配置文件（通常位於 `~/.docker/config.json`），並添加以下內容：
+            ```json
+            {
+                "credsStore": "pass"
+            }
+            ```
+          - 這樣，Docker 將使用 `pass` 憑證助手來管理登錄憑證。
+      
+      3. **重新登錄到 ECR**：
+          - 使用 Docker 憑證助手重新登錄到 ECR：
+            ```sh
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 167804136284.dkr.ecr.us-east-1.amazonaws.com
+            ```
+      
+      這樣，您的登錄憑證將由憑證助手管理，不會以未加密的形式存儲在配置文件中。
+      
+      如果您有任何其他問題或需要進一步的幫助，請隨時告訴我！
+
 ●寫Helm檔
 
 ●用Jenkins Deploy 這些Image到Kops (K8s) Server
