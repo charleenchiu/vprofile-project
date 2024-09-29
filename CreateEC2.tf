@@ -5,10 +5,9 @@ provider "aws" {
 
 // Launching new EC2 instance
 resource "aws_instance" "JenkinsServer" {
-  //ami = "ami-040caf1245aa2f480" //JenkinsServerImg11_ConfigSonnerScannerNSonarServer
-  //ami = "ami-0d53f16220577f919"  //JenkinsServerImg12_GenFirstSonarAnalysisReport
   //ami = "ami-03e7e7eac160da024"  //JenkinsServerImg13_EBS_add_2GiB with t2.small
-  ami = "ami-0e0b480b46e7c831c"  //JenkinsServerImg14_SonarQG_Webhook with t2.small
+  //ami = "ami-0e0b480b46e7c831c"  //JenkinsServerImg14_SonarQG_Webhook with t2.small
+  ami = "ami-01154da512f2d3d4b"  //JenkinsServerImg15_Sonar_Docker_ECR with t2.small
   instance_type = "t2.small"
   key_name = "jenkins-key"
   vpc_security_group_ids = ["sg-0f8aa01fc499922a6"] //JenkinsSG
