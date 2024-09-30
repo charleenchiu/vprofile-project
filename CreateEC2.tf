@@ -26,25 +26,30 @@ resource "aws_iam_role" "new_role" {
   })
 }
 
+locals {
+  create_new_role = length(data.aws_iam_role.existing_role.arn) == 0 ? 1 : 0
+  new_role_name   = aws_iam_role.new_role[count.index].name
+}
+
 resource "aws_iam_role_policy_attachment" "attach_policy_ecr" {
-  count      = length(data.aws_iam_role.existing_role.arn) == 0 ? 1 : 0
-  role       = aws_iam_role.new_role.name
+  count      = local.create_new_role
+  role       = local.new_role_name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
 }
 
 resource "aws_iam_role_policy_attachment" "attach_policy_ecs" {
-  count      = length(data.aws_iam_role.existing_role.arn) == 0 ? 1 : 0
-  role       = aws_iam_role.new_role.name
+  count      = local.create_new_role
+  role       = local.new_role_name
   policy_arn = "arn:aws:iam::aws:policy/AmazonECSFullAccess"
 }
 
-//=============================================================
-
 resource "aws_iam_instance_profile" "jenkins_instance_profile" {
-  count = length(data.aws_iam_role.existing_role.arn) == 0 ? 1 : 0
+  count      = local.create_new_role
   name = "JenkinsInstanceProfile"
-  role = aws_iam_role.new_role.name
+  role = local.new_role_name
 }
+
+//=============================================================
 
 // Launching new EC2 instance
 resource "aws_instance" "JenkinsServer" {
