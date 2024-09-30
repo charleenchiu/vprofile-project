@@ -82,6 +82,11 @@ vprofile-project
       
       如果您有任何其他問題或需要進一步的幫助，請隨時告訴我！
 
+# 執行計畫：
+- 1.用Terraform建立2台EC2：一台作為Jenkins Server，另一台作為Sonar Server；還有建立ECS
+- 2. 在Jenkins Server上執行jenkinsfile來：用Sonar做程式碼分析；建立Docker Image，並上傳到ECR，Deploy到ECS
+
+
 ●寫Helm檔
 
 ●用Jenkins Deploy 這些Image到Kops (K8s) Server
