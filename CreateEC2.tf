@@ -38,13 +38,13 @@ resource "aws_iam_role_policy_attachment" "attach_policy_ecs" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonECSFullAccess"
 }
 
-//=============================================================
-
 resource "aws_iam_instance_profile" "jenkins_instance_profile" {
   count = length(data.aws_iam_role.existing_role.arn) == 0 ? 1 : 0
   name = "JenkinsInstanceProfile"
   role = aws_iam_role.new_role.name
 }
+
+//=============================================================
 
 // Launching new EC2 instance
 resource "aws_instance" "JenkinsServer" {
