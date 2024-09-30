@@ -3,6 +3,49 @@ provider "aws" {
     region = "us-east-1"
 }
 
+data "aws_iam_role" "existing_role" {
+  name = "Jenkins_Role"
+}
+
+resource "aws_iam_role" "new_role" {
+  count = length(data.aws_iam_role.existing_role.arn) == 0 ? 1 : 0
+
+  name = "Jenkins_Role"
+  description = "Jenkins Access ECR and Deploy Docker Image to ECS"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "attach_policy_ecr" {
+  count      = length(data.aws_iam_role.existing_role.arn) == 0 ? 1 : 0
+  role       = aws_iam_role.new_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
+}
+
+resource "aws_iam_role_policy_attachment" "attach_policy_ecs" {
+  count      = length(data.aws_iam_role.existing_role.arn) == 0 ? 1 : 0
+  role       = aws_iam_role.new_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonECSFullAccess"
+}
+
+//=============================================================
+
+resource "aws_iam_instance_profile" "jenkins_instance_profile" {
+  count = length(data.aws_iam_role.existing_role.arn) == 0 ? 1 : 0
+  name = "JenkinsInstanceProfile"
+  role = aws_iam_role.new_role.name
+}
+
 // Launching new EC2 instance
 resource "aws_instance" "JenkinsServer" {
   //ami = "ami-03e7e7eac160da024"  //JenkinsServerImg13_EBS_add_2GiB with t2.small
@@ -14,10 +57,12 @@ resource "aws_instance" "JenkinsServer" {
   subnet_id = "subnet-0153eaf2e8d59b0a0" //charleensideproject-web-1a
   private_ip = "172.16.10.31" //固定使用指定的private ip
   associate_public_ip_address = true //啟用公共IP
+  iam_instance_profile = aws_iam_instance_profile.jenkins_instance_profile
   tags = {
       Name = "JenkinsServer"
   }
 }
+
 
 // Launching new EC2 instance
 resource "aws_instance" "SonarServer" {
@@ -34,6 +79,54 @@ resource "aws_instance" "SonarServer" {
       Name = "SonarServer"
   }
 }
+
+//===========================================================
+
+//添加 ECS Cluster 的配置
+resource "aws_ecs_cluster" "vprofile" {
+  name = "vprofile"
+}
+
+//建立 ECS Task Definition：添加 ECS 任務定義，使用 ECR 映像
+resource "aws_ecs_task_definition" "vprofile_task" {
+  family                   = "vprofile-task"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "256"
+  memory                   = "512"
+
+  container_definitions = jsonencode([
+    {
+      name      = "vprofileappimg"
+      image     = "167804136284.dkr.ecr.us-east-1.amazonaws.com/vprofileappimg:latest"
+      essential = true
+      portMappings = [
+        {
+          containerPort = 80
+          hostPort      = 80
+        }
+      ]
+    }
+  ])
+}
+
+//建立 ECS Service：添加 ECS 服務的配置
+resource "aws_ecs_service" "vprofile_service" {
+  name            = "vprofileappsvc"
+  cluster         = aws_ecs_cluster.vprofile.id
+  task_definition = aws_ecs_task_definition.vprofile_task.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = ["subnet-0153eaf2e8d59b0a0"] //charleensideproject-web-1a
+    security_groups  = ["sg-0e77561a9a7811a44"]     //charleensidepojrect-web-sg
+    assign_public_ip = true
+  }
+}
+
+
+//===========================================================
 
 output "JenkinsServerURL_PrivateIP" {
   value = "http://${aws_instance.JenkinsServer.private_ip}:8080"
@@ -53,4 +146,8 @@ output "SonarServerURL_PublicIP" {
 }
 output "SonarServer_SSH" {
   value = "ssh -i ${aws_instance.SonarServer.key_name}.pem ubuntu@${aws_instance.SonarServer.public_ip}"
+}
+
+output "ECS_Service_Public_IP" {
+  value = aws_ecs_service.vprofile_service.network_configuration[0].assign_public_ip
 }
