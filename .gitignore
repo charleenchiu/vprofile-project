@@ -1,0 +1,14 @@
+# 忽略所有 .log 文件
+*.log
+
+# 忽略 temp 資料夾及其所有內容
+ignore/
+
+# 忽略特定文件
+secret.txt
+
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+CreateNSetEC2/
+.vscode/
