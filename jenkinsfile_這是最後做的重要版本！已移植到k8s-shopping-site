@@ -1,0 +1,129 @@
+pipeline {
+    agent any
+    tools {
+        maven 'MAVEN3'
+    }
+
+    environment {
+        AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+        appRegistry = '167804136284.dkr.ecr.us-east-1.amazonaws.com/vprofileappimg'
+        vprofileRegistry = 'https://167804136284.dkr.ecr.us-east-1.amazonaws.com'
+        clusterName = 'vprofile' // ECS 集群名稱
+        serviceName = 'vprofileappsvc' // ECS 服務名稱
+        containerName = 'vprofileappimg' // 容器名稱
+    }
+
+    stages {
+        stage('Fetch code') {
+            steps {
+                git branch: 'docker', url: 'https://github.com/charleenchiu/vprofile-project.git'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+
+        stage('CODE ANALYSIS WITH CHECKSTYLE') {
+            steps {
+                sh 'mvn checkstyle:checkstyle'
+            }
+            post {
+                success {
+                    echo 'Generated Analysis Result'
+                }
+            }
+        }
+
+        stage('build && SonarQube analysis') {
+            environment {
+                scannerHome = tool 'SonarScanner'
+            }
+            steps {
+                withSonarQubeEnv('SonarServer') {
+                    sh '''${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=vprofile \
+                    -Dsonar.projectName=vprofile-repo \
+                    -Dsonar.projectVersion=1.0 \
+                    -Dsonar.sources=src/ \
+                    -Dsonar.java.binaries=target/test-classes/com/visualpathit/account/controllerTest/ \
+                    -Dsonar.junit.reportsPath=target/surefire-reports/ \
+                    -Dsonar.jacoco.reportsPath=target/jacoco.exec \
+                    -Dsonar.java.checkstyle.reportPaths=target/checkstyle-result.xml'''
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 1, unit: 'HOURS') {
+                    // Parameter indicates whether to set pipeline to UNSTABLE if Quality Gate fails
+                    // true = set pipeline to UNSTABLE, false = don't
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Build App Image') {
+            steps {
+                script {
+                    def timestamp = new Date().format("yyyyMMddHHmmss")
+                    env.TIMESTAMP = timestamp
+                    dockerImage = docker.build(appRegistry + ":${BUILD_NUMBER}_${timestamp}", './Docker-files/app/multistage/')
+                }
+            }
+        }
+
+        stage('Login to ECR') {
+            steps {
+                script {
+                    sh 'aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 167804136284.dkr.ecr.us-east-1.amazonaws.com'
+                }
+            }
+        }
+
+        stage('Upload App Image to ECR') {
+            steps {
+                script {
+                    docker.withRegistry(vprofileRegistry) {
+                        dockerImage.push("${BUILD_NUMBER}_${env.TIMESTAMP}")
+                        dockerImage.push('latest')
+                    }
+                }
+            }
+        }
+
+/*
+        stage('Deploy to ECS') {
+            steps {
+                script {
+                    sh '''
+                    aws ecs update-service --cluster ${clusterName} --service ${serviceName} \
+                    --force-new-deployment --region us-east-1
+                    '''
+                }
+            }
+        }
+*/
+
+        /*
+        stage('Deploy to EKS') {
+            steps {
+                script {
+                    withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                        sh 'kubectl set image deployment/vprofile-deployment vprofileappimg=' + appRegistry + ':${BUILD_NUMBER}_${env.TIMESTAMP}'
+                    }
+                }
+            }
+        }
+        */
+        
+        stage('Clean Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+    }
+}
